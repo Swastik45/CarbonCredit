@@ -126,7 +126,14 @@ document.getElementById('logout').addEventListener('click', () => {
 // Load pending plantations
 async function loadPendingPlantations() {
     try {
-        const response = await fetch(`${API_BASE}/plantations`);
+        const userId = localStorage.getItem('user_id');
+        const userType = localStorage.getItem('user_type');
+        const headers = {};
+        if (userId && userType) {
+            headers['User-Id'] = userId;
+            headers['User-Type'] = userType;
+        }
+        const response = await fetch(`${API_BASE}/plantations`, { headers });
         const plantations = await response.json();
         const pending = plantations.filter(p => p.verification_status === 'pending');
         const list = document.getElementById('plantation-list');
