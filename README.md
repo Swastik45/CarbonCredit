@@ -3,7 +3,7 @@
 A comprehensive platform for farmers to register plantations, calculate carbon credits using satellite data, and for businesses to purchase these credits to offset their carbon emissions.
 
 ## View Live
-[![Live Site](https://img.shields.io/badge/Live-Demo-brightgreen?style=for-the-badge&logo=render)](https://carboncredit-frontend.onrender.com/) 
+(https://carboncredit-frontend.onrender.com/) 
 
 ## 🌟 Overview
 
