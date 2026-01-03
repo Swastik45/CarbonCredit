@@ -24,6 +24,8 @@ def login_required(f):
         user_type = request.headers.get('User-Type')
         if not user_id_str or not user_type:
             return jsonify({'error': 'Authentication required'}), 401
+        if user_type not in ['farmer', 'business', 'admin']:
+            return jsonify({'error': 'Invalid user type'}), 403
         try:
             g.user_id = int(user_id_str)
         except ValueError:
@@ -126,6 +128,7 @@ def farmer_plantations():
         return jsonify({'message': 'Plantation added successfully', 'id': plantation.id}), 201
 
 @routes.route('/admin/verify/<int:id>/<status>', methods=['POST'])
+@login_required
 def admin_verify(id, status):
     if status not in ['verified', 'rejected']:
         return jsonify({'error': 'Invalid status'}), 400

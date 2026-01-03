@@ -451,10 +451,12 @@ document.getElementById('admin-login')?.addEventListener('submit', async (e) => 
     e.preventDefault();
     const button = e.target.querySelector('button[type="submit"]');
     setLoading(button, true);
-    
+
     const password = document.getElementById('admin-password').value;
-    
+
     if (password === 'admin123') {
+        localStorage.setItem('user_type', 'admin');
+        localStorage.setItem('user_id', '1'); // Dummy admin user ID
         showMessage('admin-message', 'Login successful! Redirecting...', 'success');
         setTimeout(() => {
             window.location.href = 'admin_dashboard.html';
