@@ -2,6 +2,9 @@
 
 A comprehensive platform for farmers to register plantations, calculate carbon credits using satellite data, and for businesses to purchase these credits to offset their carbon emissions.
 
+## View Live
+(https://carboncredit-frontend.onrender.com/) 
+
 ## 🌟 Overview
 
 The Carbon Credit Marketplace is a web-based platform that connects sustainable farmers with eco-conscious businesses. Farmers can register their plantations, upload images, and calculate carbon credits based on vegetation health using NDVI (Normalized Difference Vegetation Index) analysis from satellite data. Businesses can browse verified plantations and purchase carbon credits to offset their carbon footprint.
