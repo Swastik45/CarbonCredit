@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'https://carboncredit-3ej7.onrender.com';
 
 // ============================================
 // UTILITY FUNCTIONS
