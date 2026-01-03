@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Farmer Dashboard - Manage your plantations and carbon credits">
+    <title>Farmer Dashboard - Carbon Credit Marketplace</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin="anonymous" />
+</head>
+<body>
+    <header>
+        <nav>
+            <h1>👨‍🌾 Farmer Dashboard</h1>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="ndvi_guide.html">NDVI Guide</a>
+                <button id="logout">Logout</button>
+            </div>
+            <button class="mobile-menu-btn" aria-label="Toggle mobile menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </nav>
+    </header>
+    <main>
+        <section id="credits">
+            <h2>Your Carbon Credits</h2>
+            <div class="credits-display">
+                <span id="credit-amount">0</span> Credits
+            </div>
+            <p style="text-align: center; color: var(--text-secondary); margin-top: 0.5rem;">
+                Earn credits by registering and maintaining healthy plantations!
+            </p>
+        </section>
+        
+        <section id="ndvi-info" class="info-section">
+            <h2>🌱 Understanding NDVI & Carbon Credits</h2>
+            <div class="ndvi-content">
+                <div class="ndvi-explanation">
+                    <h3>What is NDVI?</h3>
+                    <p><strong>Normalized Difference Vegetation Index (NDVI)</strong> is a standardized index that quantifies vegetation health and density using satellite imagery. It measures the difference between near-infrared light (which vegetation strongly reflects) and red light (which vegetation absorbs).</p>
+                    
+                    <h3>How NDVI is Calculated</h3>
+                    <p>The NDVI formula is:</p>
+                    <div class="formula-box">
+                        <code>NDVI = (NIR - RED) / (NIR + RED)</code>
+                    </div>
+                    <p>Where:</p>
+                    <ul>
+                        <li><strong>NIR</strong> = Near-Infrared band reflectance (0.7-1.1 μm)</li>
+                        <li><strong>RED</strong> = Red band reflectance (0.6-0.7 μm)</li>
+                    </ul>
+                    <p>NDVI values range from -1 to +1:</p>
+                    <ul>
+                        <li><strong>-1 to 0</strong>: Non-vegetated surfaces (water, soil, urban areas)</li>
+                        <li><strong>0.1 to 0.3</strong>: Sparse vegetation</li>
+                        <li><strong>0.3 to 0.5</strong>: Moderate vegetation</li>
+                        <li><strong>0.5 to 0.7</strong>: Dense vegetation</li>
+                        <li><strong>0.7 to 1.0</strong>: Very dense, healthy vegetation</li>
+                    </ul>
+                    
+                    <h3>How We Use NDVI for Carbon Credits</h3>
+                    <p>Our platform uses NDVI measurements to:</p>
+                    <ol>
+                        <li><strong>Verify Plantation Health</strong>: Higher NDVI values indicate healthier, more productive vegetation</li>
+                        <li><strong>Calculate Carbon Sequestration</strong>: Healthy vegetation sequesters more CO₂ through photosynthesis</li>
+                        <li><strong>Monitor Changes</strong>: Track vegetation health over time to ensure ongoing carbon sequestration</li>
+                        <li><strong>Generate Credits</strong>: Verified healthy plantations earn carbon credits based on NDVI scores</li>
+                    </ol>
+                    
+                    <h3>Data Sources & Methodology</h3>
+                    <p>We utilize satellite imagery from:</p>
+                    <ul>
+                        <li><strong>Sentinel-2</strong> (European Space Agency) - 10-20m resolution, 5-day revisit</li>
+                        <li><strong>Landsat 8/9</strong> (NASA/USGS) - 30m resolution, 16-day revisit</li>
+                        <li><strong>MODIS</strong> (NASA) - 250-500m resolution, daily coverage</li>
+                    </ul>
+                    
+                    <div class="sources">
+                        <h4>Scientific References</h4>
+                        <ul class="reference-list">
+                            <li><strong>Rouse et al. (1974)</strong> - Original NDVI formula development<br>
+                                <em>IEEE Transactions on Geoscience Electronics, 12(4), 237-239</em></li>
+                            <li><strong>Tucker (1979)</strong> - Global vegetation monitoring using NDVI<br>
+                                <em>Remote Sensing of Environment, 8(4), 127-150</em></li>
+                            <li><strong>IPCC Guidelines (2006)</strong> - Carbon sequestration measurement standards<br>
+                                <em>Intergovernmental Panel on Climate Change</em></li>
+                            <li><strong>ESA Sentinel-2 Mission</strong> - High-resolution vegetation monitoring<br>
+                                <em>European Space Agency Technical Specifications</em></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="methodology-note">
+                        <h4>📊 Our Carbon Credit Calculation</h4>
+                        <p>Carbon credits are calculated using:</p>
+                        <ul>
+                            <li>NDVI score × plantation area × time factor × carbon sequestration rate</li>
+                            <li>Regular satellite monitoring ensures ongoing verification</li>
+                            <li>Credits are issued quarterly based on sustained vegetation health</li>
+                        </ul>
+                        <p style="margin-top: 1rem; text-align: center;">
+                            <a href="ndvi_guide.html" class="learn-more-link">📖 Learn More About NDVI Technology</a>
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="ndvi-visual">
+                    <div class="ndvi-scale">
+                        <h4>NDVI Color Scale</h4>
+                        <div class="scale-bar">
+                            <div class="scale-item" style="background: #8B0000;"><span>-1.0</span></div>
+                            <div class="scale-item" style="background: #FF4500;"><span>-0.5</span></div>
+                            <div class="scale-item" style="background: #FFFF00;"><span>0.0</span></div>
+                            <div class="scale-item" style="background: #9ACD32;"><span>0.3</span></div>
+                            <div class="scale-item" style="background: #228B22;"><span>0.5</span></div>
+                            <div class="scale-item" style="background: #006400;"><span>0.7</span></div>
+                            <div class="scale-item" style="background: #003300;"><span>1.0</span></div>
+                        </div>
+                        <p class="scale-labels">
+                            <span>Water/Soil</span>
+                            <span>↓</span>
+                            <span>Sparse Veg.</span>
+                            <span>↓</span>
+                            <span>Healthy Veg.</span>
+                            <span>↓</span>
+                            <span>Dense Forest</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="add-plantation">
+            <h2>Add New Plantation</h2>
+            <form id="plantation-form" enctype="multipart/form-data" aria-label="Add plantation form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="latitude">Latitude</label>
+                        <input type="number" step="any" id="latitude" name="latitude" placeholder="e.g., 40.7128" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="longitude">Longitude</label>
+                        <input type="number" step="any" id="longitude" name="longitude" placeholder="e.g., -74.0060" required>
+                    </div>
+                </div>
+                <button type="button" id="get-location" class="secondary">📍 Get Current Location</button>
+                <div class="form-group">
+                    <label for="tree-type">Tree Type</label>
+                    <input type="text" id="tree-type" name="tree_type" placeholder="e.g., Oak, Pine, Eucalyptus" required>
+                </div>
+                <div class="form-group">
+                    <label for="area">Area (hectares)</label>
+                    <input type="number" step="any" id="area" name="area" placeholder="Enter area in hectares" required min="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="image">Plantation Image (Optional)</label>
+                    <input type="file" id="image" name="image" accept="image/*">
+                    <small style="color: var(--text-secondary); font-size: 0.85rem;">Upload a photo of your plantation for verification</small>
+                </div>
+                <button type="submit">➕ Add Plantation</button>
+            </form>
+            <div id="plantation-message" class="hidden"></div>
+        </section>
+        
+        <section id="plantations">
+            <h2>Your Plantations</h2>
+            <div id="plantation-list" class="card-grid"></div>
+            <div id="empty-plantations" class="empty-state hidden">
+                <p>No plantations yet. Add your first plantation above!</p>
+            </div>
+        </section>
+        
+        <section id="map">
+            <h2>Map View</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">View all your plantations on the map</p>
+            <div id="map-container"></div>
+        </section>
+    </main>
+    
+    <!-- Image Modal -->
+    <div id="image-modal" class="image-modal">
+        <span class="close">&times;</span>
+        <img id="modal-image" src="" alt="Plantation Image">
+    </div>
+    
+    <!-- Custom Modal -->
+    <div id="custom-modal" class="custom-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Confirm Action</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-message">Are you sure you want to proceed?</p>
+            </div>
+            <div class="modal-footer">
+                <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="modal-confirm" class="btn btn-primary">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin="anonymous"></script>
+    <script src="map.js"></script>
+    <script src="app.js"></script>
+    <script src="farmer.js"></script>
+</body>
+</html>

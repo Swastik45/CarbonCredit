@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Admin Dashboard - Verify and manage plantations">
+    <title>Admin Dashboard - Carbon Credit Marketplace</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>⚙️ Admin Dashboard</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="ndvi_guide.html">NDVI Guide</a>
+            <button id="logout">Logout</button>
+            <button class="mobile-menu-btn" aria-label="Toggle mobile menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </nav>
+    </header>
+    <main>
+        <section id="ndvi-info" class="info-section">
+            <h2>🔬 NDVI Verification Guidelines</h2>
+            <div class="ndvi-content">
+                <div class="ndvi-explanation">
+                    <h3>NDVI Calculation & Standards</h3>
+                    <p><strong>Normalized Difference Vegetation Index (NDVI)</strong> is calculated using satellite imagery:</p>
+                    
+                    <div class="formula-box">
+                        <code>NDVI = (NIR - RED) / (NIR + RED)</code>
+                    </div>
+                    
+                    <p><strong>Data Sources:</strong> Sentinel-2 (10-20m resolution), Landsat 8/9 (30m resolution), MODIS (250-500m resolution)</p>
+                    
+                    <h3>Verification Criteria</h3>
+                    <p>When reviewing plantations, ensure:</p>
+                    <ul>
+                        <li><strong>NDVI Range</strong>: 0.3-0.8 for healthy vegetation (avoid values >0.9 which may indicate stress)</li>
+                        <li><strong>Consistency</strong>: Check for spatial uniformity across plantation area</li>
+                        <li><strong>Seasonal Variation</strong>: Account for expected NDVI changes by season and crop type</li>
+                        <li><strong>Image Quality</strong>: Verify cloud-free, recent imagery (<30 days old)</li>
+                    </ul>
+                    
+                    <h3>Carbon Credit Calculation</h3>
+                    <p>Credits are calculated as:</p>
+                    <div class="formula-box">
+                        <code>Credits = Area × NDVI × Sequestration_Rate × Time_Factor</code>
+                    </div>
+                    
+                    <div class="methodology-note">
+                        <h4>⚖️ Approval Guidelines</h4>
+                        <ul>
+                            <li><strong>Approve</strong>: NDVI 0.4-0.8, clear imagery, accurate area measurement</li>
+                            <li><strong>Reject</strong>: NDVI <0.3 (poor vegetation), cloud cover >20%, inaccurate data</li>
+                            <li><strong>Request Revision</strong>: Minor issues that farmer can correct</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="ndvi-visual">
+                    <div class="ndvi-scale">
+                        <h4>NDVI Approval Scale</h4>
+                        <div class="scale-bar">
+                            <div class="scale-item" style="background: #dc2626;"><span><0.3</span></div>
+                            <div class="scale-item" style="background: #ea580c;"><span>0.3-0.4</span></div>
+                            <div class="scale-item" style="background: #ca8a04;"><span>0.4-0.6</span></div>
+                            <div class="scale-item" style="background: #16a34a;"><span>0.6-0.8</span></div>
+                            <div class="scale-item" style="background: #166534;"><span>0.8+</span></div>
+                        </div>
+                        <p class="scale-labels">
+                            <span>Reject</span>
+                            <span>↓</span>
+                            <span>Review</span>
+                            <span>↓</span>
+                            <span>Approve</span>
+                        </p>
+                    </div>
+                    
+                    <div class="sources">
+                        <h4>Technical References</h4>
+                        <ul class="reference-list">
+                            <li><strong>Rouse et al. (1974)</strong> - NDVI formula</li>
+                            <li><strong>IPCC Guidelines</strong> - Carbon accounting</li>
+                            <li><strong>VCS Standard</strong> - Verification requirements</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="pending-plantations">
+            <h2>Pending Plantations</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                Review and verify plantations submitted by farmers. Check images, NDVI values, and other details before approval.
+            </p>
+            <div id="plantation-list" class="card-grid"></div>
+            <div id="empty-pending" class="empty-state hidden">
+                <p>No pending plantations to review. All plantations have been processed!</p>
+            </div>
+        </section>
+    </main>
+    
+    <!-- Image Modal -->
+    <div id="image-modal" class="image-modal">
+        <span class="close">&times;</span>
+        <img id="modal-image" src="" alt="Plantation Image">
+    </div>
+    
+    <!-- Custom Modal -->
+    <div id="custom-modal" class="custom-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Confirm Action</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="modal-message">Are you sure you want to proceed?</p>
+            </div>
+            <div class="modal-footer">
+                <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
+                <button id="modal-confirm" class="btn btn-primary">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NDVI Guide - Understanding Normalized Difference Vegetation Index for carbon credit verification">
+    <title>NDVI Guide - Carbon Credit Verification</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-icon">🌱</span>
+                <span class="logo-text">CarbonCredit</span>
+            </div>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="#what-is-ndvi">What is NDVI</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#sources">Sources</a>
+                <a href="index.html#login-section">Get Verified</a>
+            </div>
+            <button class="mobile-menu-btn" aria-label="Toggle mobile menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero hero-ndvi">
+        <div class="hero-background">
+            <div class="gradient-orb orb-1"></div>
+            <div class="gradient-orb orb-2"></div>
+        </div>
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <span class="title-line">Understanding</span>
+                <span class="title-line highlight">NDVI Technology</span>
+                <span class="title-line">for Carbon Credits</span>
+            </h1>
+            <p class="hero-subtitle">
+                Learn how satellite-based vegetation analysis ensures the integrity and transparency of our carbon credit marketplace.
+            </p>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="ndvi-guide">
+        <div class="container">
+
+            <section id="what-is-ndvi" class="guide-section">
+                <h2>🌿 What is NDVI?</h2>
+                <div class="content-grid">
+                    <div class="content-text">
+                        <p><strong>Normalized Difference Vegetation Index (NDVI)</strong> is a standardized index that quantifies vegetation health, density, and photosynthetic activity using satellite remote sensing data.</p>
+
+                        <p>Developed in the early 1970s, NDVI has become the most widely used vegetation index in remote sensing and environmental monitoring. It exploits the fact that healthy vegetation strongly reflects near-infrared light while absorbing red light for photosynthesis.</p>
+
+                        <h3>The Science Behind NDVI</h3>
+                        <p>Vegetation appears green to our eyes because it reflects green light while absorbing red and blue light for photosynthesis. However, healthy leaves also reflect a significant amount of near-infrared (NIR) light, which is invisible to humans but detectable by satellites.</p>
+
+                        <p>By comparing the reflectance in the red and near-infrared portions of the electromagnetic spectrum, NDVI provides a measure of vegetation vigor and density.</p>
+                    </div>
+                    <div class="content-visual">
+                        <div class="spectrum-diagram">
+                            <h4>Electromagnetic Spectrum</h4>
+                            <div class="spectrum-bar">
+                                <div class="spectrum-segment red" data-wavelength="RED">Red<br>0.6-0.7μm</div>
+                                <div class="spectrum-segment nir" data-wavelength="NIR">Near-IR<br>0.7-1.1μm</div>
+                            </div>
+                            <p class="spectrum-explanation">
+                                <strong>Red light:</strong> Absorbed by chlorophyll<br>
+                                <strong>Near-IR light:</strong> Reflected by leaf structure
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="how-it-works" class="guide-section">
+                <h2>🧮 How NDVI is Calculated</h2>
+                <div class="formula-section">
+                    <h3>The NDVI Formula</h3>
+                    <div class="formula-display">
+                        <div class="formula-box large">
+                            <code>NDVI = (NIR - RED) / (NIR + RED)</code>
+                        </div>
+                    </div>
+
+                    <div class="formula-explanation">
+                        <div class="formula-component">
+                            <h4>NIR (Near-Infrared)</h4>
+                            <p>Reflectance in near-infrared band (typically 0.7-1.1 μm)</p>
+                            <p><strong>Healthy vegetation:</strong> High reflectance (0.4-0.6)</p>
+                        </div>
+                        <div class="formula-component">
+                            <h4>RED (Red)</h4>
+                            <p>Reflectance in red band (typically 0.6-0.7 μm)</p>
+                            <p><strong>Healthy vegetation:</strong> Low reflectance (0.05-0.10)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>NDVI Value Interpretation</h3>
+                <div class="ndvi-scale-detailed">
+                    <div class="scale-container">
+                        <h4>NDVI Values & Vegetation Health</h4>
+                        <div class="detailed-scale">
+                            <div class="scale-range">
+                                <div class="range-bar">
+                                    <div class="range-segment" style="background: #8B0000; width: 10%;"><span>-1.0 to 0.0</span></div>
+                                    <div class="range-segment" style="background: #FF4500; width: 15%;"><span>0.0 to 0.2</span></div>
+                                    <div class="range-segment" style="background: #FFFF00; width: 20%;"><span>0.2 to 0.4</span></div>
+                                    <div class="range-segment" style="background: #9ACD32; width: 25%;"><span>0.4 to 0.6</span></div>
+                                    <div class="range-segment" style="background: #228B22; width: 20%;"><span>0.6 to 0.8</span></div>
+                                    <div class="range-segment" style="background: #006400; width: 10%;"><span>0.8 to 1.0</span></div>
+                                </div>
+                                <div class="range-labels">
+                                    <span>Water/Soil</span>
+                                    <span>↓</span>
+                                    <span>Barren</span>
+                                    <span>↓</span>
+                                    <span>Sparse Veg.</span>
+                                    <span>↓</span>
+                                    <span>Moderate Veg.</span>
+                                    <span>↓</span>
+                                    <span>Dense Veg.</span>
+                                    <span>↓</span>
+                                    <span>Very Dense</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h3>Our Carbon Credit Calculation</h3>
+                <div class="calculation-method">
+                    <p>Carbon credits are calculated using a comprehensive formula that incorporates NDVI measurements:</p>
+                    <div class="formula-box large">
+                        <code>Credits = Area × NDVI × Sequestration_Rate × Time_Factor × Verification_Multiplier</code>
+                    </div>
+                    <div class="calculation-factors">
+                        <div class="factor">
+                            <h4>Area</h4>
+                            <p>Verified plantation area in hectares</p>
+                        </div>
+                        <div class="factor">
+                            <h4>NDVI</h4>
+                            <p>Vegetation health index (0.3-0.8 optimal range)</p>
+                        </div>
+                        <div class="factor">
+                            <h4>Sequestration Rate</h4>
+                            <p>Species-specific CO₂ absorption rate (kg/ha/year)</p>
+                        </div>
+                        <div class="factor">
+                            <h4>Time Factor</h4>
+                            <p>Duration of sustained sequestration</p>
+                        </div>
+                        <div class="factor">
+                            <h4>Verification</h4>
+                            <p>Quality assurance multiplier (0.9-1.0)</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="sources" class="guide-section">
+                <h2>📚 Scientific References & Standards</h2>
+                <div class="sources-grid">
+                    <div class="source-category">
+                        <h3>NDVI Development</h3>
+                        <ul class="reference-list">
+                            <li>
+                                <strong>Rouse, J.W. et al. (1974)</strong><br>
+                                "Monitoring vegetation systems in the Great Plains with ERTS"<br>
+                                <em>IEEE Transactions on Geoscience Electronics, 12(4), 237-239</em>
+                            </li>
+                            <li>
+                                <strong>Tucker, C.J. (1979)</strong><br>
+                                "Red and photographic infrared linear combinations for monitoring vegetation"<br>
+                                <em>Remote Sensing of Environment, 8(4), 127-150</em>
+                            </li>
+                            <li>
+                                <strong>Huete, A.R. (1988)</strong><br>
+                                "A soil-adjusted vegetation index (SAVI)"<br>
+                                <em>Remote Sensing of Environment, 25(3), 295-309</em>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="source-category">
+                        <h3>Carbon Accounting Standards</h3>
+                        <ul class="reference-list">
+                            <li>
+                                <strong>IPCC (2006)</strong><br>
+                                "Guidelines for National Greenhouse Gas Inventories"<br>
+                                <em>Intergovernmental Panel on Climate Change</em>
+                            </li>
+                            <li>
+                                <strong>VCS Standard (2020)</strong><br>
+                                "Verified Carbon Standard Methodology"<br>
+                                <em>Verra Carbon Markets</em>
+                            </li>
+                            <li>
+                                <strong>ISO 14064-2 (2006)</strong><br>
+                                "Greenhouse gases - Part 2: Specification with guidance at the project level"<br>
+                                <em>International Organization for Standardization</em>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="source-category">
+                        <h3>Satellite Data Sources</h3>
+                        <ul class="reference-list">
+                            <li>
+                                <strong>ESA Sentinel-2 Mission</strong><br>
+                                "Multi-spectral instrument for Copernicus"<br>
+                                <em>European Space Agency Technical Guide</em>
+                            </li>
+                            <li>
+                                <strong>USGS Landsat Program</strong><br>
+                                "Landsat 8/9 Operational Land Imager"<br>
+                                <em>United States Geological Survey</em>
+                            </li>
+                            <li>
+                                <strong>NASA MODIS</strong><br>
+                                "Moderate Resolution Imaging Spectroradiometer"<br>
+                                <em>National Aeronautics and Space Administration</em>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section class="guide-section">
+                <h2>🔍 Quality Assurance & Verification</h2>
+                <div class="qa-grid">
+                    <div class="qa-item">
+                        <h3>Satellite Data Validation</h3>
+                        <ul>
+                            <li>Cloud cover assessment (<20% acceptable)</li>
+                            <li>Image acquisition within 30 days</li>
+                            <li>Geometric accuracy verification</li>
+                            <li>Atmospheric correction applied</li>
+                        </ul>
+                    </div>
+                    <div class="qa-item">
+                        <h3>Ground Truth Verification</h3>
+                        <ul>
+                            <li>Random sampling of plantations</li>
+                            <li>Field measurements comparison</li>
+                            <li>Species identification confirmation</li>
+                            <li>Area measurement validation</li>
+                        </ul>
+                    </div>
+                    <div class="qa-item">
+                        <h3>Continuous Monitoring</h3>
+                        <ul>
+                            <li>Quarterly NDVI reassessment</li>
+                            <li>Change detection analysis</li>
+                            <li>Early warning for vegetation stress</li>
+                            <li>Adaptive credit adjustment</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <span class="logo-icon">🌱</span>
+                        <span class="logo-text">CarbonCredit</span>
+                    </div>
+                    <p>Connecting sustainable agriculture with carbon-conscious businesses through verified, transparent carbon credit trading.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Resources</h4>
+                    <ul>
+                        <li><a href="#what-is-ndvi">What is NDVI</a></li>
+                        <li><a href="#how-it-works">How It Works</a></li>
+                        <li><a href="#sources">Scientific References</a></li>
+                        <li><a href="contact.html">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="privacy.html">Privacy Policy</a></li>
+                       
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 CarbonCredit Marketplace. All rights reserved.</p>
+                <p>Built with scientific rigor and environmental commitment.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

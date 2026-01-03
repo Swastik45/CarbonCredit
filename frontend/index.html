@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Carbon Credit Marketplace - Connect farmers and businesses for sustainable carbon offset solutions">
+    <title>Carbon Credit Marketplace - Sustainable Future Starts Here</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <div class="nav-container">
+            <div class="logo">
+                <span class="logo-icon">🌱</span>
+                <span class="logo-text">CarbonCredit</span>
+            </div>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="ndvi_guide.html">NDVI Guide</a>
+                <a href="#login-section" class="btn-login">Get Started</a>
+            </div>
+            <button class="mobile-menu-btn" aria-label="Toggle mobile menu">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-background">
+            <div class="gradient-orb orb-1"></div>
+            <div class="gradient-orb orb-2"></div>
+            <div class="gradient-orb orb-3"></div>
+        </div>
+        <div class="hero-content">
+            <h1 class="hero-title">
+                <span class="title-line">Transform Your</span>
+                <span class="title-line highlight">Carbon Footprint</span>
+                <span class="title-line">Into Credits</span>
+            </h1>
+            <p class="hero-subtitle">
+                The world's leading marketplace connecting sustainable farmers with eco-conscious businesses. 
+                Earn carbon credits from your plantations or offset your emissions today.
+            </p>
+            <div class="hero-stats">
+                <div class="stat-item">
+                    <div class="stat-number" data-target="0">0</div>
+                    <div class="stat-label">Active Plantations</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" data-target="0">0</div>
+                    <div class="stat-label">Carbon Credits Traded</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" data-target="0">0</div>
+                    <div class="stat-label">Verified Farmers</div>
+                </div>
+            </div>
+            <a href="#login-section" class="cta-button">
+                <span>Start Your Journey</span>
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </a>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features-section">
+        <div class="container">
+            <h2 class="section-title">Why Choose CarbonCredit?</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🌳</div>
+                    <h3>Verified Plantations</h3>
+                    <p>All plantations are verified using satellite imagery and NDVI analysis for authenticity.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💰</div>
+                    <h3>Fair Pricing</h3>
+                    <p>Transparent pricing with real-time market rates for carbon credits.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Real-time Tracking</h3>
+                    <p>Monitor your carbon credits and plantation health with live dashboards.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Secure Transactions</h3>
+                    <p>Blockchain-verified transactions ensuring trust and transparency.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌍</div>
+                    <h3>Global Impact</h3>
+                    <p>Join thousands contributing to a sustainable future for our planet.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Instant Verification</h3>
+                    <p>AI-powered verification process for quick approval and credit calculation.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="how-it-works" class="how-it-works">
+        <div class="container">
+            <h2 class="section-title">How It Works</h2>
+            <div class="steps-container">
+                <div class="step-item">
+                    <div class="step-number">1</div>
+                    <h3>Register</h3>
+                    <p>Create your account as a farmer or business in minutes.</p>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step-item">
+                    <div class="step-number">2</div>
+                    <h3>Add Plantations</h3>
+                    <p>Farmers add their plantations with location and tree details.</p>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step-item">
+                    <div class="step-number">3</div>
+                    <h3>Get Verified</h3>
+                    <p>Admin verifies using <strong>NDVI satellite analysis</strong> to measure vegetation health and calculate carbon sequestration capacity.</p>
+                    <div class="ndvi-tooltip">
+                        <small><strong>NDVI Formula:</strong> (NIR - RED) / (NIR + RED)<br>
+                        Higher values = healthier vegetation = more carbon credits</small>
+                    </div>
+                </div>
+                <div class="step-connector"></div>
+                <div class="step-item">
+                    <div class="step-number">4</div>
+                    <h3>Trade Credits</h3>
+                    <p>Businesses purchase credits to offset their carbon footprint.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Login Section -->
+    <section id="login-section" class="login-section">
+        <div class="container">
+            <h2 class="section-title">Get Started</h2>
+            <p class="section-subtitle">Choose your portal to login or create a new account</p>
+            
+            <!-- Tab Navigation -->
+            <div class="tab-container">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" data-tab="farmer">
+                        <span>👨‍🌾</span>
+                        <span>Farmer</span>
+                    </button>
+                    <button class="tab-btn" data-tab="business">
+                        <span>🏢</span>
+                        <span>Business</span>
+                    </button>
+                    <button class="tab-btn" data-tab="admin">
+                        <span>🔐</span>
+                        <span>Admin</span>
+                    </button>
+                </div>
+
+                <!-- Farmer Tab -->
+                <div class="tab-content active" id="farmer-tab">
+                    <div class="auth-container">
+                        <div class="auth-form-container" id="farmer-login-form">
+                            <h3>Farmer Login</h3>
+                            <form id="farmer-login" class="auth-form">
+                                <div class="form-group">
+                                    <label for="farmer-username">Username</label>
+                                    <input type="text" id="farmer-username" placeholder="Enter your username" required autocomplete="username">
+                                </div>
+                                <div class="form-group">
+                                    <label for="farmer-password">Password</label>
+                                    <div class="password-input-wrapper">
+                                        <input type="password" id="farmer-password" placeholder="Enter your password" required autocomplete="current-password">
+                                        <button type="button" class="toggle-password" data-target="farmer-password">👁️</button>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-primary">Login</button>
+                            </form>
+                            <p class="auth-switch">
+                                Don't have an account? 
+                                <a href="#" class="switch-link" data-switch="farmer-register-form">Register here</a>
+                            </p>
+                            <div id="farmer-message" class="message hidden"></div>
+                        </div>
+
+                        <div class="auth-form-container hidden" id="farmer-register-form">
+                            <h3>Create Farmer Account</h3>
+                            <form id="farmer-reg-form" class="auth-form">
+                                <div class="form-group">
+                                    <label for="farmer-reg-username">Username</label>
+                                    <input type="text" id="farmer-reg-username" placeholder="Choose a username" required autocomplete="username">
+                                </div>
+                                <div class="form-group">
+                                    <label for="farmer-reg-email">Email</label>
+                                    <input type="email" id="farmer-reg-email" placeholder="Enter your email" required autocomplete="email">
+                                </div>
+                                <div class="form-group">
+                                    <label for="farmer-reg-password">Password</label>
+                                    <div class="password-input-wrapper">
+                                        <input type="password" id="farmer-reg-password" placeholder="Create a password (min. 6 characters)" required autocomplete="new-password">
+                                        <button type="button" class="toggle-password" data-target="farmer-reg-password">👁️</button>
+                                    </div>
+                                    <div class="password-strength" id="farmer-password-strength">
+                                        <div class="strength-bar">
+                                            <div class="strength-fill"></div>
+                                        </div>
+                                        <span class="strength-text">Password strength</span>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-primary">Register</button>
+                            </form>
+                            <p class="auth-switch">
+                                Already have an account? 
+                                <a href="#" class="switch-link" data-switch="farmer-login-form">Login here</a>
+                            </p>
+                            <div id="farmer-reg-message" class="message hidden"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Business Tab -->
+                <div class="tab-content" id="business-tab">
+                    <div class="auth-container">
+                        <div class="auth-form-container" id="business-login-form">
+                            <h3>Business Login</h3>
+                            <form id="business-login" class="auth-form">
+                                <div class="form-group">
+                                    <label for="business-username">Username</label>
+                                    <input type="text" id="business-username" placeholder="Enter your username" required autocomplete="username">
+                                </div>
+                                <div class="form-group">
+                                    <label for="business-password">Password</label>
+                                    <div class="password-input-wrapper">
+                                        <input type="password" id="business-password" placeholder="Enter your password" required autocomplete="current-password">
+                                        <button type="button" class="toggle-password" data-target="business-password">👁️</button>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-primary">Login</button>
+                            </form>
+                            <p class="auth-switch">
+                                Don't have an account? 
+                                <a href="#" class="switch-link" data-switch="business-register-form">Register here</a>
+                            </p>
+                            <div id="business-message" class="message hidden"></div>
+                        </div>
+
+                        <div class="auth-form-container hidden" id="business-register-form">
+                            <h3>Create Business Account</h3>
+                            <form id="business-reg-form" class="auth-form">
+                                <div class="form-group">
+                                    <label for="business-reg-username">Username</label>
+                                    <input type="text" id="business-reg-username" placeholder="Choose a username" required autocomplete="username">
+                                </div>
+                                <div class="form-group">
+                                    <label for="business-reg-email">Email</label>
+                                    <input type="email" id="business-reg-email" placeholder="Enter your email" required autocomplete="email">
+                                </div>
+                                <div class="form-group">
+                                    <label for="business-reg-password">Password</label>
+                                    <div class="password-input-wrapper">
+                                        <input type="password" id="business-reg-password" placeholder="Create a password (min. 6 characters)" required autocomplete="new-password">
+                                        <button type="button" class="toggle-password" data-target="business-reg-password">👁️</button>
+                                    </div>
+                                    <div class="password-strength" id="business-password-strength">
+                                        <div class="strength-bar">
+                                            <div class="strength-fill"></div>
+                                        </div>
+                                        <span class="strength-text">Password strength</span>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-primary">Register</button>
+                            </form>
+                            <p class="auth-switch">
+                                Already have an account? 
+                                <a href="#" class="switch-link" data-switch="business-login-form">Login here</a>
+                            </p>
+                            <div id="business-reg-message" class="message hidden"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Tab -->
+                <div class="tab-content" id="admin-tab">
+                    <div class="auth-container">
+                        <div class="auth-form-container">
+                            <h3>Admin Portal</h3>
+                            <p class="admin-description">Access the admin dashboard to verify and manage plantations.</p>
+                            <form id="admin-login" class="auth-form">
+                                <div class="form-group">
+                                    <label for="admin-password">Admin Password</label>
+                                    <div class="password-input-wrapper">
+                                        <input type="password" id="admin-password" placeholder="Enter admin password" required autocomplete="current-password">
+                                        <button type="button" class="toggle-password" data-target="admin-password">👁️</button>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn-primary">Login</button>
+                            </form>
+                            <div id="admin-message" class="message hidden"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>CarbonCredit</h4>
+                    <p>Building a sustainable future, one credit at a time.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <a href="#features">Features</a>
+                    <a href="#how-it-works">How It Works</a>
+                    <a href="#login-section">Get Started</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <a href="documentation.html">Documentation</a>
+                    <a href="contact.html">Contact Us</a>
+                    <a href="privacy.html">Privacy Policy</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 CarbonCredit Marketplace. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
+<!-- Custom Modal -->
+<div id="custom-modal" class="custom-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">Confirm Action</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="modal-message">Are you sure you want to proceed?</p>
+        </div>
+        <div class="modal-footer">
+            <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
+            <button id="modal-confirm" class="btn btn-primary">Confirm</button>
+        </div>
+    </div>
+</div>
