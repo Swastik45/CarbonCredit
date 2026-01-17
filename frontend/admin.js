@@ -1,5 +1,4 @@
-// Configuration
-const API_BASE = 'https://carboncredit-3ej7.onrender.com'; // Ensure this matches your backend URL
+
 
 // --- 1. Image Modal Logic ---
 function setupImageModal() {
