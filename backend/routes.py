@@ -130,6 +130,8 @@ def farmer_plantations():
 @routes.route('/admin/verify/<int:id>/<status>', methods=['POST'])
 @login_required
 def admin_verify(id, status):
+    if g.user_type != 'admin':
+        return jsonify({'error': 'Access denied. Admin privileges required.'}), 403
     if status not in ['verified', 'rejected']:
         return jsonify({'error': 'Invalid status'}), 400
     plantation = Plantation.query.get_or_404(id)

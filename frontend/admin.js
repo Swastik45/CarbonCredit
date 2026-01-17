@@ -227,11 +227,19 @@ async function loadPendingPlantations() {
 async function verifyPlantation(id, status) {
     const action = status === 'verified' ? 'verify' : 'reject';
     const message = `Are you sure you want to ${action} this plantation?`;
-    
+
     showConfirm(message, async () => {
         try {
+            const userId = localStorage.getItem('user_id');
+            const userType = localStorage.getItem('user_type');
+            const headers = {};
+            if (userId && userType) {
+                headers['User-Id'] = userId;
+                headers['User-Type'] = userType;
+            }
             const response = await fetch(`${API_BASE}/admin/verify/${id}/${status}`, {
-                method: 'POST'
+                method: 'POST',
+                headers: headers
             });
             
             if (response.ok) {
