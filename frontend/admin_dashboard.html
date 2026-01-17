@@ -103,28 +103,26 @@
         </section>
     </main>
     
-    <!-- Image Modal -->
-    <div id="image-modal" class="image-modal">
-        <span class="close">&times;</span>
-        <img id="modal-image" src="" alt="Plantation Image">
-    </div>
-    
-    <!-- Custom Modal -->
-    <div id="custom-modal" class="custom-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-title">Confirm Action</h3>
-                <button class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p id="modal-message">Are you sure you want to proceed?</p>
-            </div>
-            <div class="modal-footer">
-                <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
-                <button id="modal-confirm" class="btn btn-primary">Confirm</button>
-            </div>
+   <div id="custom-modal" class="custom-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">Confirm Action</h3>
+            <button class="modal-close" onclick="hideModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="modal-message">Are you sure you want to proceed?</p> 
+        </div>
+        <div class="modal-footer">
+            <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
+            <button id="modal-confirm" class="btn btn-primary">Confirm</button>
         </div>
     </div>
+</div>
+
+<div id="image-modal" class="image-modal">
+    <span class="close" onclick="this.parentElement.classList.remove('active')">&times;</span>
+    <img id="modal-image" src="" alt="Plantation Image">
+</div>
     
     <script src="app.js"></script>
     <script src="admin.js"></script>
