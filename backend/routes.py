@@ -1,14 +1,11 @@
 from flask import Blueprint, request, jsonify, g, current_app
-from flask_mail import Mail, Message
+from flask_mail import Message
 from models import db, Farmer, Business, Plantation, CarbonCredit
 from utils import calculate_credit
 from cloud_storage import upload_image, delete_image
-from auth_utils import is_strong_password, send_verification_email, send_2fa_code, generate_2fa_code, validate_email_format
 from sqlalchemy import func
-from datetime import datetime, timedelta
 import os
 from email_validator import validate_email, EmailNotValidError
-import secrets
 
 routes = Blueprint('routes', __name__)
 
@@ -44,113 +41,41 @@ def login_required(f):
 def farmer_register():
     data = request.get_json()
     
-    # Validate required fields
     if not all([data.get('username'), data.get('email'), data.get('password')]):
         return jsonify({'error': 'Username, email, and password are required'}), 400
     
     username = data['username'].strip()
+    email = data['email'].strip()
     password = data['password']
     
-    # Validate password strength
-    is_strong, pwd_message = is_strong_password(password)
-    if not is_strong:
-        return jsonify({'error': pwd_message}), 400
+    # Validate email
+    is_valid, email_or_error = validate_email_address(email)
+    if not is_valid:
+        return jsonify({'error': f'Invalid email: {email_or_error}'}), 400
     
     # Check if username exists
     if Farmer.query.filter_by(username=username).first():
         return jsonify({'error': 'Username already exists'}), 400
     
-    # Validate and check email
-    is_valid, email_or_error = validate_email_address(data['email'])
-    if not is_valid:
-        return jsonify({'error': f'Invalid email: {email_or_error}'}), 400
-    
+    # Check if email exists
     if Farmer.query.filter_by(email=email_or_error).first():
         return jsonify({'error': 'Email already exists'}), 400
     
     # Create farmer account
     try:
-        farmer = Farmer(username=username, email=email_or_error)
+        farmer = Farmer(username=username, email=email_or_error, email_verified=True)
         farmer.set_password(password)
-        
-        # Generate email verification code
-        verification_code = farmer.generate_verification_code()
         
         db.session.add(farmer)
         db.session.commit()
         
-        # Send verification email
-        success, message = send_verification_email(email_or_error, verification_code, current_app)
-        if not success:
-            return jsonify({'error': 'Registration successful but failed to send verification email'}), 500
-        
         return jsonify({
-            'message': 'Registration successful. Check your email for verification code.',
-            'user_id': farmer.id,
-            'requires_verification': True
+            'message': 'Registration successful! Please login.',
+            'user_id': farmer.id
         }), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': f'Registration failed: {str(e)}'}), 500
-
-@routes.route('/farmer/verify-email', methods=['POST'])
-def farmer_verify_email():
-    data = request.get_json()
-    user_id = data.get('user_id')
-    code = data.get('code')
-    
-    if not user_id or not code:
-        return jsonify({'error': 'User ID and verification code are required'}), 400
-    
-    farmer = Farmer.query.get(user_id)
-    if not farmer:
-        return jsonify({'error': 'User not found'}), 404
-    
-    if farmer.email_verified:
-        return jsonify({'message': 'Email already verified'}), 200
-    
-    # Check if code matches and hasn't expired
-    if farmer.email_verification_code != code:
-        return jsonify({'error': 'Invalid verification code'}), 400
-    
-    if farmer.email_verification_expires < datetime.utcnow():
-        return jsonify({'error': 'Verification code has expired'}), 400
-    
-    # Mark email as verified
-    farmer.email_verified = True
-    farmer.email_verification_code = None
-    farmer.email_verification_expires = None
-    
-    db.session.commit()
-    
-    return jsonify({'message': 'Email verified successfully'}), 200
-
-@routes.route('/farmer/resend-verification', methods=['POST'])
-def farmer_resend_verification():
-    data = request.get_json()
-    email = data.get('email')
-    
-    if not email:
-        return jsonify({'error': 'Email is required'}), 400
-    
-    farmer = Farmer.query.filter_by(email=email).first()
-    if not farmer:
-        return jsonify({'error': 'Email not found'}), 404
-    
-    if farmer.email_verified:
-        return jsonify({'message': 'Email already verified'}), 200
-    
-    # Generate new code
-    verification_code = farmer.generate_verification_code()
-    db.session.commit()
-    
-    # Send verification email
-    success, message = send_verification_email(email, verification_code, current_app)
-    
-    if success:
-        return jsonify({'message': 'Verification code sent to your email'}), 200
-    else:
-        return jsonify({'error': message}), 500
+        return jsonify({'error': 'Registration failed. Please try again.'}), 500
 
 @routes.route('/farmer/login', methods=['POST'])
 def farmer_login():
@@ -162,154 +87,21 @@ def farmer_login():
         return jsonify({'error': 'Username and password are required'}), 400
     
     farmer = Farmer.query.filter_by(username=username).first()
-    
-    # Check if account is locked
-    if farmer and farmer.is_account_locked():
-        remaining_time = (farmer.locked_until - datetime.utcnow()).total_seconds() / 60
+    if farmer and farmer.check_password(password):
         return jsonify({
-            'error': f'Account is locked. Try again in {int(remaining_time)} minutes.'
-        }), 423
-    
-    # Validate credentials
-    if not farmer or not farmer.check_password(password):
-        if farmer:
-            farmer.increment_login_attempts()
-            db.session.commit()
-        return jsonify({'error': 'Invalid credentials'}), 401
-    
-    # Check if email is verified
-    if not farmer.email_verified:
-        return jsonify({
-            'error': 'Email verification required',
+            'message': 'Login successful',
             'user_id': farmer.id,
-            'requires_email_verification': True
-        }), 403
-    
-    # Generate 2FA code
-    twofa_code = generate_2fa_code()
-    # Store in session temporarily (you might want to use Redis for production)
-    farmer.login_attempts = 0  # Reset login attempts on successful password validation
-    farmer.last_login = datetime.utcnow()
-    
-    # Send 2FA code
-    success, message = send_2fa_code(farmer.email, twofa_code, current_app)
-    
-    if success:
-        # Store the code temporarily (in production, use Redis or session store)
-        # For now, we'll return it but in production this should be handled server-side only
-        db.session.commit()
-        return jsonify({
-            'message': '2FA code sent to your email',
-            'user_id': farmer.id,
-            'temp_token': farmer.id,  # This should be replaced with proper session/token
-            'requires_2fa': True
+            'user_type': 'farmer'
         }), 200
-    else:
-        return jsonify({'error': message}), 500
+    
+    return jsonify({'error': 'Invalid credentials'}), 401
 
-@routes.route('/farmer/verify-2fa', methods=['POST'])
-def farmer_verify_2fa():
-    data = request.get_json()
-    user_id = data.get('user_id')
-    code = data.get('code')
     
-    farmer = Farmer.query.get(user_id)
-    if not farmer:
-        return jsonify({'error': 'User not found'}), 404
-    
-    # In production, verify the code from your session/token store
-    # For now, accept any valid 6-digit code
-    if not code or len(code) != 6:
-        return jsonify({'error': 'Invalid 2FA code format'}), 400
-    
-    return jsonify({
-        'message': 'Login successful',
-        'user_id': farmer.id,
-        'user_type': 'farmer'
-    }), 200
 
-@routes.route('/farmer/google-login', methods=['POST'])
-def farmer_google_login():
-    """Login or register with Google OAuth"""
-    data = request.get_json()
-    google_id = data.get('google_id')
-    email = data.get('email')
-    name = data.get('name')
-    
-    if not google_id or not email:
-        return jsonify({'error': 'Google ID and email are required'}), 400
-    
-    # Validate email format
-    if not validate_email_format(email):
-        return jsonify({'error': 'Invalid email format'}), 400
-    
-    # Check if user exists with this Google ID
-    farmer = Farmer.query.filter_by(google_id=google_id).first()
-    
-    if farmer:
-        # Existing Google user
-        farmer.email_verified = True  # Google accounts are pre-verified
-        farmer.login_attempts = 0
-        farmer.last_login = datetime.utcnow()
-        db.session.commit()
-        
-        # Send 2FA code
-        twofa_code = generate_2fa_code()
-        success, message = send_2fa_code(farmer.email, twofa_code, current_app)
-        
-        if success:
-            return jsonify({
-                'message': '2FA code sent to your email',
-                'user_id': farmer.id,
-                'requires_2fa': True
-            }), 200
-    else:
-        # Check if email exists
-        existing_farmer = Farmer.query.filter_by(email=email).first()
-        if existing_farmer:
-            return jsonify({
-                'error': 'Email already registered. Please login with your password or link Google account in settings.'
-            }), 409
-        
-        # Create new Google user
-        try:
-            username = name.replace(' ', '_').lower() if name else f"user_{google_id[:8]}"
-            
-            # Ensure unique username
-            base_username = username
-            counter = 1
-            while Farmer.query.filter_by(username=username).first():
-                username = f"{base_username}_{counter}"
-                counter += 1
-            
-            farmer = Farmer(
-                username=username,
-                email=email,
-                google_id=google_id,
-                email_verified=True  # Google accounts are pre-verified
-            )
-            # Set a random password for Google users
-            farmer.set_password(secrets.token_urlsafe(32))
-            
-            db.session.add(farmer)
-            db.session.commit()
-            
-            # Send 2FA code
-            twofa_code = generate_2fa_code()
-            success, message = send_2fa_code(farmer.email, twofa_code, current_app)
-            
-            if success:
-                return jsonify({
-                    'message': '2FA code sent to your email',
-                    'user_id': farmer.id,
-                    'is_new_user': True,
-                    'requires_2fa': True
-                }), 201
-            else:
-                return jsonify({'error': message}), 500
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': f'Registration failed: {str(e)}'}), 500
+@routes.route('/farmer/logout', methods=['POST'])
+@login_required
+def farmer_logout():
+    return jsonify({'message': 'Logout successful'}), 200
 
 
 @routes.route('/farmer/logout', methods=['POST'])
@@ -466,113 +258,41 @@ def farmer_credits():
 def business_register():
     data = request.get_json()
     
-    # Validate required fields
     if not all([data.get('username'), data.get('email'), data.get('password')]):
         return jsonify({'error': 'Username, email, and password are required'}), 400
     
     username = data['username'].strip()
+    email = data['email'].strip()
     password = data['password']
     
-    # Validate password strength
-    is_strong, pwd_message = is_strong_password(password)
-    if not is_strong:
-        return jsonify({'error': pwd_message}), 400
+    # Validate email
+    is_valid, email_or_error = validate_email_address(email)
+    if not is_valid:
+        return jsonify({'error': f'Invalid email: {email_or_error}'}), 400
     
     # Check if username exists
     if Business.query.filter_by(username=username).first():
         return jsonify({'error': 'Username already exists'}), 400
     
-    # Validate and check email
-    is_valid, email_or_error = validate_email_address(data['email'])
-    if not is_valid:
-        return jsonify({'error': f'Invalid email: {email_or_error}'}), 400
-    
+    # Check if email exists
     if Business.query.filter_by(email=email_or_error).first():
         return jsonify({'error': 'Email already exists'}), 400
     
     # Create business account
     try:
-        business = Business(username=username, email=email_or_error)
+        business = Business(username=username, email=email_or_error, email_verified=True)
         business.set_password(password)
-        
-        # Generate email verification code
-        verification_code = business.generate_verification_code()
         
         db.session.add(business)
         db.session.commit()
         
-        # Send verification email
-        success, message = send_verification_email(email_or_error, verification_code, current_app)
-        if not success:
-            return jsonify({'error': 'Registration successful but failed to send verification email'}), 500
-        
         return jsonify({
-            'message': 'Registration successful. Check your email for verification code.',
-            'user_id': business.id,
-            'requires_verification': True
+            'message': 'Registration successful! Please login.',
+            'user_id': business.id
         }), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': f'Registration failed: {str(e)}'}), 500
-
-@routes.route('/business/verify-email', methods=['POST'])
-def business_verify_email():
-    data = request.get_json()
-    user_id = data.get('user_id')
-    code = data.get('code')
-    
-    if not user_id or not code:
-        return jsonify({'error': 'User ID and verification code are required'}), 400
-    
-    business = Business.query.get(user_id)
-    if not business:
-        return jsonify({'error': 'User not found'}), 404
-    
-    if business.email_verified:
-        return jsonify({'message': 'Email already verified'}), 200
-    
-    # Check if code matches and hasn't expired
-    if business.email_verification_code != code:
-        return jsonify({'error': 'Invalid verification code'}), 400
-    
-    if business.email_verification_expires < datetime.utcnow():
-        return jsonify({'error': 'Verification code has expired'}), 400
-    
-    # Mark email as verified
-    business.email_verified = True
-    business.email_verification_code = None
-    business.email_verification_expires = None
-    
-    db.session.commit()
-    
-    return jsonify({'message': 'Email verified successfully'}), 200
-
-@routes.route('/business/resend-verification', methods=['POST'])
-def business_resend_verification():
-    data = request.get_json()
-    email = data.get('email')
-    
-    if not email:
-        return jsonify({'error': 'Email is required'}), 400
-    
-    business = Business.query.filter_by(email=email).first()
-    if not business:
-        return jsonify({'error': 'Email not found'}), 404
-    
-    if business.email_verified:
-        return jsonify({'message': 'Email already verified'}), 200
-    
-    # Generate new code
-    verification_code = business.generate_verification_code()
-    db.session.commit()
-    
-    # Send verification email
-    success, message = send_verification_email(email, verification_code, current_app)
-    
-    if success:
-        return jsonify({'message': 'Verification code sent to your email'}), 200
-    else:
-        return jsonify({'error': message}), 500
+        return jsonify({'error': 'Registration failed. Please try again.'}), 500
 
 @routes.route('/business/login', methods=['POST'])
 def business_login():
@@ -584,147 +304,14 @@ def business_login():
         return jsonify({'error': 'Username and password are required'}), 400
     
     business = Business.query.filter_by(username=username).first()
-    
-    # Check if account is locked
-    if business and business.is_account_locked():
-        remaining_time = (business.locked_until - datetime.utcnow()).total_seconds() / 60
+    if business and business.check_password(password):
         return jsonify({
-            'error': f'Account is locked. Try again in {int(remaining_time)} minutes.'
-        }), 423
-    
-    # Validate credentials
-    if not business or not business.check_password(password):
-        if business:
-            business.increment_login_attempts()
-            db.session.commit()
-        return jsonify({'error': 'Invalid credentials'}), 401
-    
-    # Check if email is verified
-    if not business.email_verified:
-        return jsonify({
-            'error': 'Email verification required',
+            'message': 'Login successful',
             'user_id': business.id,
-            'requires_email_verification': True
-        }), 403
-    
-    # Generate 2FA code
-    twofa_code = generate_2fa_code()
-    business.login_attempts = 0  # Reset login attempts
-    business.last_login = datetime.utcnow()
-    
-    # Send 2FA code
-    success, message = send_2fa_code(business.email, twofa_code, current_app)
-    
-    if success:
-        db.session.commit()
-        return jsonify({
-            'message': '2FA code sent to your email',
-            'user_id': business.id,
-            'requires_2fa': True
+            'user_type': 'business'
         }), 200
-    else:
-        return jsonify({'error': message}), 500
-
-@routes.route('/business/verify-2fa', methods=['POST'])
-def business_verify_2fa():
-    data = request.get_json()
-    user_id = data.get('user_id')
-    code = data.get('code')
     
-    business = Business.query.get(user_id)
-    if not business:
-        return jsonify({'error': 'User not found'}), 404
-    
-    if not code or len(code) != 6:
-        return jsonify({'error': 'Invalid 2FA code format'}), 400
-    
-    return jsonify({
-        'message': 'Login successful',
-        'user_id': business.id,
-        'user_type': 'business'
-    }), 200
-
-@routes.route('/business/google-login', methods=['POST'])
-def business_google_login():
-    """Login or register with Google OAuth"""
-    data = request.get_json()
-    google_id = data.get('google_id')
-    email = data.get('email')
-    name = data.get('name')
-    
-    if not google_id or not email:
-        return jsonify({'error': 'Google ID and email are required'}), 400
-    
-    # Validate email format
-    if not validate_email_format(email):
-        return jsonify({'error': 'Invalid email format'}), 400
-    
-    # Check if user exists with this Google ID
-    business = Business.query.filter_by(google_id=google_id).first()
-    
-    if business:
-        # Existing Google user
-        business.email_verified = True
-        business.login_attempts = 0
-        business.last_login = datetime.utcnow()
-        db.session.commit()
-        
-        # Send 2FA code
-        twofa_code = generate_2fa_code()
-        success, message = send_2fa_code(business.email, twofa_code, current_app)
-        
-        if success:
-            return jsonify({
-                'message': '2FA code sent to your email',
-                'user_id': business.id,
-                'requires_2fa': True
-            }), 200
-    else:
-        # Check if email exists
-        existing_business = Business.query.filter_by(email=email).first()
-        if existing_business:
-            return jsonify({
-                'error': 'Email already registered. Please login with your password or link Google account in settings.'
-            }), 409
-        
-        # Create new Google user
-        try:
-            username = name.replace(' ', '_').lower() if name else f"user_{google_id[:8]}"
-            
-            # Ensure unique username
-            base_username = username
-            counter = 1
-            while Business.query.filter_by(username=username).first():
-                username = f"{base_username}_{counter}"
-                counter += 1
-            
-            business = Business(
-                username=username,
-                email=email,
-                google_id=google_id,
-                email_verified=True
-            )
-            business.set_password(secrets.token_urlsafe(32))
-            
-            db.session.add(business)
-            db.session.commit()
-            
-            # Send 2FA code
-            twofa_code = generate_2fa_code()
-            success, message = send_2fa_code(business.email, twofa_code, current_app)
-            
-            if success:
-                return jsonify({
-                    'message': '2FA code sent to your email',
-                    'user_id': business.id,
-                    'is_new_user': True,
-                    'requires_2fa': True
-                }), 201
-            else:
-                return jsonify({'error': message}), 500
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': f'Registration failed: {str(e)}'}), 500
+    return jsonify({'error': 'Invalid credentials'}), 401
 
 @routes.route('/business/logout', methods=['POST'])
 @login_required
