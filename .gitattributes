@@ -1,0 +1,6 @@
+# Treat HTML files as documentation/data so they don't count towards language stats
+*.html linguist-detectable=false
+*.css linguist-detectable=false
+
+# Alternatively, explicitly tell GitHub this is a Python project
+*.py linguist-detectable=true
