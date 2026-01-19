@@ -1,4 +1,4 @@
-# Carbon Credit Marketplace
+ # Carbon Credit Marketplace
 
 A comprehensive platform for farmers to register plantations, calculate carbon credits using satellite data, and for businesses to purchase these credits to offset their carbon emissions.
 
