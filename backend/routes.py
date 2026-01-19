@@ -70,8 +70,9 @@ def farmer_register():
         db.session.commit()
         
         return jsonify({
-            'message': 'Registration successful! Please login.',
-            'user_id': farmer.id
+            'message': 'Registration successful!',
+            'user_id': farmer.id,
+            'user_type': 'farmer'
         }), 201
     except Exception as e:
         db.session.rollback()
@@ -279,8 +280,9 @@ def business_register():
         db.session.commit()
         
         return jsonify({
-            'message': 'Registration successful! Please login.',
-            'user_id': business.id
+            'message': 'Registration successful!',
+            'user_id': business.id,
+            'user_type': 'business'
         }), 201
     except Exception as e:
         db.session.rollback()
