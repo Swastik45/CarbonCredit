@@ -189,6 +189,12 @@
                                 </div>
                                 <button type="submit" class="btn-primary">Login</button>
                             </form>
+                            <div style="margin-top: 1.5rem; text-align: center;">
+                                <p style="margin: 10px 0; font-size: 0.9rem; color: #666;">Or continue with</p>
+                                <button type="button" class="btn-google" onclick="handleFarmerGoogleSignup()" style="width: 100%; margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;">
+                                    🔐 Login with Google
+                                </button>
+                            </div>
                             <p class="auth-switch">
                                 Don't have an account? 
                                 <a href="#" class="switch-link" data-switch="farmer-register-form">Register here</a>
@@ -210,23 +216,64 @@
                                 <div class="form-group">
                                     <label for="farmer-reg-password">Password</label>
                                     <div class="password-input-wrapper">
-                                        <input type="password" id="farmer-reg-password" placeholder="Create a password (min. 6 characters)" required autocomplete="new-password">
+                                        <input type="password" id="farmer-reg-password" placeholder="Min. 12 chars, uppercase, lowercase, digit & special char" required autocomplete="new-password">
                                         <button type="button" class="toggle-password" data-target="farmer-reg-password">👁️</button>
                                     </div>
                                     <div class="password-strength" id="farmer-password-strength">
                                         <div class="strength-bar">
                                             <div class="strength-fill"></div>
                                         </div>
-                                        <span class="strength-text">Password strength</span>
+                                        <span class="strength-text">Password strength: 12+ chars, uppercase, lowercase, digit & special</span>
                                     </div>
+                                    <small style="color: #666; display: block; margin-top: 5px;">
+                                        Requirements: At least 12 characters, 1 uppercase, 1 lowercase, 1 digit, 1 special character (!@#$%^&*...)
+                                    </small>
                                 </div>
                                 <button type="submit" class="btn-primary">Register</button>
                             </form>
+                            <div style="margin-top: 1.5rem; text-align: center;">
+                                <p style="margin: 10px 0; font-size: 0.9rem; color: #666;">Or continue with</p>
+                                <button type="button" class="btn-google" id="farmer-google-signup" style="width: 100%; margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;">
+                                    🔐 Sign up with Google
+                                </button>
+                            </div>
                             <p class="auth-switch">
                                 Already have an account? 
                                 <a href="#" class="switch-link" data-switch="farmer-login-form">Login here</a>
                             </p>
                             <div id="farmer-reg-message" class="message hidden"></div>
+                        </div>
+
+                        <!-- Email Verification Form -->
+                        <div class="auth-form-container hidden" id="farmer-email-verify-form">
+                            <h3>Verify Your Email</h3>
+                            <p style="color: #666; margin-bottom: 1.5rem;">A verification code has been sent to your email. Enter it below.</p>
+                            <form id="farmer-email-verify" class="auth-form">
+                                <div class="form-group">
+                                    <label for="farmer-verify-code">Verification Code</label>
+                                    <input type="text" id="farmer-verify-code" placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}">
+                                </div>
+                                <button type="submit" class="btn-primary">Verify Email</button>
+                            </form>
+                            <p class="auth-switch">
+                                Didn't receive code? 
+                                <a href="#" class="switch-link" id="farmer-resend-code">Resend</a>
+                            </p>
+                            <div id="farmer-verify-message" class="message hidden"></div>
+                        </div>
+
+                        <!-- 2FA Form -->
+                        <div class="auth-form-container hidden" id="farmer-2fa-form">
+                            <h3>Verify Login</h3>
+                            <p style="color: #666; margin-bottom: 1.5rem;">A 6-digit code has been sent to your email. Enter it to complete login.</p>
+                            <form id="farmer-2fa-verify" class="auth-form">
+                                <div class="form-group">
+                                    <label for="farmer-2fa-code">2FA Code</label>
+                                    <input type="text" id="farmer-2fa-code" placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}">
+                                </div>
+                                <button type="submit" class="btn-primary">Verify & Login</button>
+                            </form>
+                            <div id="farmer-2fa-message" class="message hidden"></div>
                         </div>
                     </div>
                 </div>
@@ -250,6 +297,12 @@
                                 </div>
                                 <button type="submit" class="btn-primary">Login</button>
                             </form>
+                            <div style="margin-top: 1.5rem; text-align: center;">
+                                <p style="margin: 10px 0; font-size: 0.9rem; color: #666;">Or continue with</p>
+                                <button type="button" class="btn-google" onclick="handleBusinessGoogleSignup()" style="width: 100%; margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;">
+                                    🔐 Login with Google
+                                </button>
+                            </div>
                             <p class="auth-switch">
                                 Don't have an account? 
                                 <a href="#" class="switch-link" data-switch="business-register-form">Register here</a>
@@ -271,23 +324,64 @@
                                 <div class="form-group">
                                     <label for="business-reg-password">Password</label>
                                     <div class="password-input-wrapper">
-                                        <input type="password" id="business-reg-password" placeholder="Create a password (min. 6 characters)" required autocomplete="new-password">
+                                        <input type="password" id="business-reg-password" placeholder="Min. 12 chars, uppercase, lowercase, digit & special char" required autocomplete="new-password">
                                         <button type="button" class="toggle-password" data-target="business-reg-password">👁️</button>
                                     </div>
                                     <div class="password-strength" id="business-password-strength">
                                         <div class="strength-bar">
                                             <div class="strength-fill"></div>
                                         </div>
-                                        <span class="strength-text">Password strength</span>
+                                        <span class="strength-text">Password strength: 12+ chars, uppercase, lowercase, digit & special</span>
                                     </div>
+                                    <small style="color: #666; display: block; margin-top: 5px;">
+                                        Requirements: At least 12 characters, 1 uppercase, 1 lowercase, 1 digit, 1 special character (!@#$%^&*...)
+                                    </small>
                                 </div>
                                 <button type="submit" class="btn-primary">Register</button>
                             </form>
+                            <div style="margin-top: 1.5rem; text-align: center;">
+                                <p style="margin: 10px 0; font-size: 0.9rem; color: #666;">Or continue with</p>
+                                <button type="button" class="btn-google" id="business-google-signup" style="width: 100%; margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: white; cursor: pointer;">
+                                    🔐 Sign up with Google
+                                </button>
+                            </div>
                             <p class="auth-switch">
                                 Already have an account? 
                                 <a href="#" class="switch-link" data-switch="business-login-form">Login here</a>
                             </p>
                             <div id="business-reg-message" class="message hidden"></div>
+                        </div>
+
+                        <!-- Email Verification Form -->
+                        <div class="auth-form-container hidden" id="business-email-verify-form">
+                            <h3>Verify Your Email</h3>
+                            <p style="color: #666; margin-bottom: 1.5rem;">A verification code has been sent to your email. Enter it below.</p>
+                            <form id="business-email-verify" class="auth-form">
+                                <div class="form-group">
+                                    <label for="business-verify-code">Verification Code</label>
+                                    <input type="text" id="business-verify-code" placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}">
+                                </div>
+                                <button type="submit" class="btn-primary">Verify Email</button>
+                            </form>
+                            <p class="auth-switch">
+                                Didn't receive code? 
+                                <a href="#" class="switch-link" id="business-resend-code">Resend</a>
+                            </p>
+                            <div id="business-verify-message" class="message hidden"></div>
+                        </div>
+
+                        <!-- 2FA Form -->
+                        <div class="auth-form-container hidden" id="business-2fa-form">
+                            <h3>Verify Login</h3>
+                            <p style="color: #666; margin-bottom: 1.5rem;">A 6-digit code has been sent to your email. Enter it to complete login.</p>
+                            <form id="business-2fa-verify" class="auth-form">
+                                <div class="form-group">
+                                    <label for="business-2fa-code">2FA Code</label>
+                                    <input type="text" id="business-2fa-code" placeholder="Enter 6-digit code" required maxlength="6" pattern="[0-9]{6}">
+                                </div>
+                                <button type="submit" class="btn-primary">Verify & Login</button>
+                            </form>
+                            <div id="business-2fa-message" class="message hidden"></div>
                         </div>
                     </div>
                 </div>

@@ -42,31 +42,49 @@ function checkPasswordStrength(password, strengthElement) {
     if (!password) {
         strengthFill.style.width = '0%';
         strengthFill.className = 'strength-fill';
-        strengthText.textContent = 'Password strength';
+        strengthText.textContent = 'Password strength: 12+ chars, uppercase, lowercase, digit & special';
         return;
     }
     
     let strength = 0;
-    let feedback = [];
+    let requirements = [];
     
-    if (password.length >= 6) strength++;
-    else feedback.push('At least 6 characters');
+    // Check each requirement
+    if (password.length >= 12) {
+        strength++;
+    } else {
+        requirements.push('12+ characters');
+    }
     
-    if (password.length >= 8) strength++;
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    else requirements.push('lowercase');
+    
+    if (/[A-Z]/.test(password)) strength++;
+    else requirements.push('UPPERCASE');
+    
     if (/\d/.test(password)) strength++;
-    if (/[^a-zA-Z\d]/.test(password)) strength++;
+    else requirements.push('digit');
     
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
+    else requirements.push('special char');
+    
+    let text = '';
     if (strength <= 2) {
         strengthFill.className = 'strength-fill weak';
-        strengthText.textContent = 'Weak password';
+        text = 'Weak - Missing: ' + requirements.join(', ');
     } else if (strength <= 3) {
         strengthFill.className = 'strength-fill medium';
-        strengthText.textContent = 'Medium strength';
-    } else {
+        text = 'Medium - Missing: ' + requirements.join(', ');
+    } else if (strength < 5) {
         strengthFill.className = 'strength-fill strong';
-        strengthText.textContent = 'Strong password';
+        text = 'Strong - Missing: ' + requirements.join(', ');
+    } else {
+        strengthFill.className = 'strength-fill very-strong';
+        text = 'Very Strong ✓';
     }
+    
+    strengthFill.style.width = (strength * 20) + '%';
+    strengthText.textContent = text;
 }
 
 // ============================================
@@ -300,18 +318,73 @@ document.getElementById('farmer-login')?.addEventListener('submit', async (e) =>
         const data = await response.json();
         
         if (response.ok) {
+            // 2FA required
+            localStorage.setItem('farmer_user_id', data.user_id);
+            showMessage('farmer-message', 'Check your email for 2FA code', 'success');
+            setTimeout(() => {
+                document.getElementById('farmer-login-form').classList.add('hidden');
+                document.getElementById('farmer-2fa-form').classList.remove('hidden');
+            }, 500);
+        } else if (response.status === 403) {
+            // Email verification required
+            localStorage.setItem('farmer_user_id', data.user_id);
+            showMessage('farmer-message', 'Please verify your email first', 'error');
+            setTimeout(() => {
+                document.getElementById('farmer-login-form').classList.add('hidden');
+                document.getElementById('farmer-email-verify-form').classList.remove('hidden');
+            }, 500);
+        } else if (response.status === 423) {
+            showMessage('farmer-message', data.error, 'error');
+        } else {
+            showMessage('farmer-message', data.error || 'Login failed', 'error');
+        }
+        setLoading(button, false);
+    } catch (error) {
+        showMessage('farmer-message', 'Network error. Please check your connection.', 'error');
+        setLoading(button, false);
+    }
+});
+
+// ============================================
+// FARMER 2FA VERIFICATION
+// ============================================
+
+document.getElementById('farmer-2fa-verify')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const button = e.target.querySelector('button[type="submit"]');
+    setLoading(button, true);
+    
+    const user_id = localStorage.getItem('farmer_user_id');
+    const code = document.getElementById('farmer-2fa-code').value;
+    
+    if (!code || code.length !== 6) {
+        showMessage('farmer-2fa-message', 'Please enter a 6-digit code', 'error');
+        setLoading(button, false);
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/farmer/verify-2fa`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id, code })
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
             localStorage.setItem('user_type', data.user_type);
             localStorage.setItem('user_id', data.user_id);
-            showMessage('farmer-message', 'Login successful! Redirecting...', 'success');
+            localStorage.removeItem('farmer_user_id');
+            showMessage('farmer-2fa-message', 'Login successful! Redirecting...', 'success');
             setTimeout(() => {
                 window.location.href = 'farmer_dashboard.html';
             }, 1000);
         } else {
-            showMessage('farmer-message', data.error || 'Login failed', 'error');
+            showMessage('farmer-2fa-message', data.error || '2FA verification failed', 'error');
             setLoading(button, false);
         }
     } catch (error) {
-        showMessage('farmer-message', 'Network error. Please check your connection.', 'error');
+        showMessage('farmer-2fa-message', 'Network error. Please check your connection.', 'error');
         setLoading(button, false);
     }
 });
@@ -329,8 +402,29 @@ document.getElementById('farmer-reg-form')?.addEventListener('submit', async (e)
     const email = document.getElementById('farmer-reg-email').value;
     const password = document.getElementById('farmer-reg-password').value;
     
-    if (password.length < 6) {
-        showMessage('farmer-reg-message', 'Password must be at least 6 characters long', 'error');
+    // Validate password strength
+    if (password.length < 12) {
+        showMessage('farmer-reg-message', 'Password must be at least 12 characters long', 'error');
+        setLoading(button, false);
+        return;
+    }
+    if (!/[A-Z]/.test(password)) {
+        showMessage('farmer-reg-message', 'Password must contain at least one uppercase letter', 'error');
+        setLoading(button, false);
+        return;
+    }
+    if (!/[a-z]/.test(password)) {
+        showMessage('farmer-reg-message', 'Password must contain at least one lowercase letter', 'error');
+        setLoading(button, false);
+        return;
+    }
+    if (!/\d/.test(password)) {
+        showMessage('farmer-reg-message', 'Password must contain at least one digit', 'error');
+        setLoading(button, false);
+        return;
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+        showMessage('farmer-reg-message', 'Password must contain at least one special character (!@#$%^&*(),.?":{} |<>)', 'error');
         setLoading(button, false);
         return;
     }
@@ -344,20 +438,88 @@ document.getElementById('farmer-reg-form')?.addEventListener('submit', async (e)
         const data = await response.json();
         
         if (response.ok) {
-            showMessage('farmer-reg-message', 'Registration successful! Please login.', 'success');
+            localStorage.setItem('farmer_user_id', data.user_id);
+            showMessage('farmer-reg-message', 'Registration successful! Check your email for verification code.', 'success');
             setTimeout(() => {
                 document.getElementById('farmer-register-form').classList.add('hidden');
-                document.getElementById('farmer-login-form').classList.remove('hidden');
-                document.getElementById('farmer-reg-form').reset();
+                document.getElementById('farmer-email-verify-form').classList.remove('hidden');
+                document.getElementById('farmer-verify-code').focus();
             }, 1500);
-            setLoading(button, false);
         } else {
             showMessage('farmer-reg-message', data.error || 'Registration failed', 'error');
-            setLoading(button, false);
         }
+        setLoading(button, false);
     } catch (error) {
         showMessage('farmer-reg-message', 'Network error. Please check your connection.', 'error');
         setLoading(button, false);
+    }
+});
+
+// ============================================
+// FARMER EMAIL VERIFICATION
+// ============================================
+
+document.getElementById('farmer-email-verify')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const button = e.target.querySelector('button[type="submit"]');
+    setLoading(button, true);
+    
+    const user_id = localStorage.getItem('farmer_user_id');
+    const code = document.getElementById('farmer-verify-code').value;
+    
+    if (!code || code.length !== 6) {
+        showMessage('farmer-verify-message', 'Please enter a 6-digit code', 'error');
+        setLoading(button, false);
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/farmer/verify-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id, code })
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+            localStorage.removeItem('farmer_user_id');
+            showMessage('farmer-verify-message', 'Email verified! Please login now.', 'success');
+            setTimeout(() => {
+                document.getElementById('farmer-email-verify-form').classList.add('hidden');
+                document.getElementById('farmer-login-form').classList.remove('hidden');
+                document.getElementById('farmer-login').reset();
+            }, 1500);
+        } else {
+            showMessage('farmer-verify-message', data.error || 'Verification failed', 'error');
+            setLoading(button, false);
+        }
+    } catch (error) {
+        showMessage('farmer-verify-message', 'Network error. Please check your connection.', 'error');
+        setLoading(button, false);
+    }
+});
+
+// Farmer resend code
+document.getElementById('farmer-resend-code')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const userEmail = prompt('Enter your email address:');
+    if (!userEmail) return;
+    
+    try {
+        const response = await fetch(`${API_BASE}/farmer/resend-verification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: userEmail })
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+            showMessage('farmer-verify-message', 'New verification code sent to your email', 'success');
+        } else {
+            showMessage('farmer-verify-message', data.error || 'Failed to resend code', 'error');
+        }
+    } catch (error) {
+        showMessage('farmer-verify-message', 'Network error', 'error');
     }
 });
 
@@ -382,18 +544,73 @@ document.getElementById('business-login')?.addEventListener('submit', async (e) 
         const data = await response.json();
         
         if (response.ok) {
+            // 2FA required
+            localStorage.setItem('business_user_id', data.user_id);
+            showMessage('business-message', 'Check your email for 2FA code', 'success');
+            setTimeout(() => {
+                document.getElementById('business-login-form').classList.add('hidden');
+                document.getElementById('business-2fa-form').classList.remove('hidden');
+            }, 500);
+        } else if (response.status === 403) {
+            // Email verification required
+            localStorage.setItem('business_user_id', data.user_id);
+            showMessage('business-message', 'Please verify your email first', 'error');
+            setTimeout(() => {
+                document.getElementById('business-login-form').classList.add('hidden');
+                document.getElementById('business-email-verify-form').classList.remove('hidden');
+            }, 500);
+        } else if (response.status === 423) {
+            showMessage('business-message', data.error, 'error');
+        } else {
+            showMessage('business-message', data.error || 'Login failed', 'error');
+        }
+        setLoading(button, false);
+    } catch (error) {
+        showMessage('business-message', 'Network error. Please check your connection.', 'error');
+        setLoading(button, false);
+    }
+});
+
+// ============================================
+// BUSINESS 2FA VERIFICATION
+// ============================================
+
+document.getElementById('business-2fa-verify')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const button = e.target.querySelector('button[type="submit"]');
+    setLoading(button, true);
+    
+    const user_id = localStorage.getItem('business_user_id');
+    const code = document.getElementById('business-2fa-code').value;
+    
+    if (!code || code.length !== 6) {
+        showMessage('business-2fa-message', 'Please enter a 6-digit code', 'error');
+        setLoading(button, false);
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/business/verify-2fa`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id, code })
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
             localStorage.setItem('user_type', data.user_type);
             localStorage.setItem('user_id', data.user_id);
-            showMessage('business-message', 'Login successful! Redirecting...', 'success');
+            localStorage.removeItem('business_user_id');
+            showMessage('business-2fa-message', 'Login successful! Redirecting...', 'success');
             setTimeout(() => {
                 window.location.href = 'business_dashboard.html';
             }, 1000);
         } else {
-            showMessage('business-message', data.error || 'Login failed', 'error');
+            showMessage('business-2fa-message', data.error || '2FA verification failed', 'error');
             setLoading(button, false);
         }
     } catch (error) {
-        showMessage('business-message', 'Network error. Please check your connection.', 'error');
+        showMessage('business-2fa-message', 'Network error. Please check your connection.', 'error');
         setLoading(button, false);
     }
 });
@@ -411,8 +628,29 @@ document.getElementById('business-reg-form')?.addEventListener('submit', async (
     const email = document.getElementById('business-reg-email').value;
     const password = document.getElementById('business-reg-password').value;
     
-    if (password.length < 6) {
-        showMessage('business-reg-message', 'Password must be at least 6 characters long', 'error');
+    // Validate password strength
+    if (password.length < 12) {
+        showMessage('business-reg-message', 'Password must be at least 12 characters long', 'error');
+        setLoading(button, false);
+        return;
+    }
+    if (!/[A-Z]/.test(password)) {
+        showMessage('business-reg-message', 'Password must contain at least one uppercase letter', 'error');
+        setLoading(button, false);
+        return;
+    }
+    if (!/[a-z]/.test(password)) {
+        showMessage('business-reg-message', 'Password must contain at least one lowercase letter', 'error');
+        setLoading(button, false);
+        return;
+    }
+    if (!/\d/.test(password)) {
+        showMessage('business-reg-message', 'Password must contain at least one digit', 'error');
+        setLoading(button, false);
+        return;
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+        showMessage('business-reg-message', 'Password must contain at least one special character (!@#$%^&*(),.?":{} |<>)', 'error');
         setLoading(button, false);
         return;
     }
@@ -426,20 +664,88 @@ document.getElementById('business-reg-form')?.addEventListener('submit', async (
         const data = await response.json();
         
         if (response.ok) {
-            showMessage('business-reg-message', 'Registration successful! Please login.', 'success');
+            localStorage.setItem('business_user_id', data.user_id);
+            showMessage('business-reg-message', 'Registration successful! Check your email for verification code.', 'success');
             setTimeout(() => {
                 document.getElementById('business-register-form').classList.add('hidden');
-                document.getElementById('business-login-form').classList.remove('hidden');
-                document.getElementById('business-reg-form').reset();
+                document.getElementById('business-email-verify-form').classList.remove('hidden');
+                document.getElementById('business-verify-code').focus();
             }, 1500);
-            setLoading(button, false);
         } else {
             showMessage('business-reg-message', data.error || 'Registration failed', 'error');
-            setLoading(button, false);
         }
+        setLoading(button, false);
     } catch (error) {
         showMessage('business-reg-message', 'Network error. Please check your connection.', 'error');
         setLoading(button, false);
+    }
+});
+
+// ============================================
+// BUSINESS EMAIL VERIFICATION
+// ============================================
+
+document.getElementById('business-email-verify')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const button = e.target.querySelector('button[type="submit"]');
+    setLoading(button, true);
+    
+    const user_id = localStorage.getItem('business_user_id');
+    const code = document.getElementById('business-verify-code').value;
+    
+    if (!code || code.length !== 6) {
+        showMessage('business-verify-message', 'Please enter a 6-digit code', 'error');
+        setLoading(button, false);
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/business/verify-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id, code })
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+            localStorage.removeItem('business_user_id');
+            showMessage('business-verify-message', 'Email verified! Please login now.', 'success');
+            setTimeout(() => {
+                document.getElementById('business-email-verify-form').classList.add('hidden');
+                document.getElementById('business-login-form').classList.remove('hidden');
+                document.getElementById('business-login').reset();
+            }, 1500);
+        } else {
+            showMessage('business-verify-message', data.error || 'Verification failed', 'error');
+            setLoading(button, false);
+        }
+    } catch (error) {
+        showMessage('business-verify-message', 'Network error. Please check your connection.', 'error');
+        setLoading(button, false);
+    }
+});
+
+// Business resend code
+document.getElementById('business-resend-code')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const userEmail = prompt('Enter your email address:');
+    if (!userEmail) return;
+    
+    try {
+        const response = await fetch(`${API_BASE}/business/resend-verification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: userEmail })
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+            showMessage('business-verify-message', 'New verification code sent to your email', 'success');
+        } else {
+            showMessage('business-verify-message', data.error || 'Failed to resend code', 'error');
+        }
+    } catch (error) {
+        showMessage('business-verify-message', 'Network error', 'error');
     }
 });
 
@@ -609,5 +915,90 @@ document.addEventListener('DOMContentLoaded', () => {
                 navLinks.classList.remove('active');
             }
         });
+    }
+});
+// ============================================
+// GOOGLE OAUTH LOGIN
+// ============================================
+
+// Note: In production, integrate with Google Sign-In SDK
+// For now, we'll provide placeholder functions
+window.handleFarmerGoogleSignup = async function() {
+    // In production: Initialize Google Sign-In
+    // This is a placeholder - integrate with actual Google OAuth 2.0
+    const googleId = prompt('This would open Google login. For testing, enter a test Google ID:');
+    if (!googleId) return;
+    
+    const email = prompt('Enter email:');
+    const name = prompt('Enter name:');
+    
+    if (!email || !name) return;
+    
+    try {
+        const response = await fetch(`${API_BASE}/farmer/google-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ google_id: googleId, email, name })
+        });
+        const data = await response.json();
+        
+        if (response.ok || response.status === 201) {
+            localStorage.setItem('farmer_user_id', data.user_id);
+            showMessage('farmer-reg-message', 'Check your email for 2FA code', 'success');
+            setTimeout(() => {
+                document.getElementById('farmer-register-form').classList.add('hidden');
+                document.getElementById('farmer-2fa-form').classList.remove('hidden');
+            }, 500);
+        } else {
+            showMessage('farmer-reg-message', data.error || 'Google login failed', 'error');
+        }
+    } catch (error) {
+        showMessage('farmer-reg-message', 'Network error', 'error');
+    }
+};
+
+window.handleBusinessGoogleSignup = async function() {
+    const googleId = prompt('This would open Google login. For testing, enter a test Google ID:');
+    if (!googleId) return;
+    
+    const email = prompt('Enter email:');
+    const name = prompt('Enter name:');
+    
+    if (!email || !name) return;
+    
+    try {
+        const response = await fetch(`${API_BASE}/business/google-login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ google_id: googleId, email, name })
+        });
+        const data = await response.json();
+        
+        if (response.ok || response.status === 201) {
+            localStorage.setItem('business_user_id', data.user_id);
+            showMessage('business-reg-message', 'Check your email for 2FA code', 'success');
+            setTimeout(() => {
+                document.getElementById('business-register-form').classList.add('hidden');
+                document.getElementById('business-2fa-form').classList.remove('hidden');
+            }, 500);
+        } else {
+            showMessage('business-reg-message', data.error || 'Google login failed', 'error');
+        }
+    } catch (error) {
+        showMessage('business-reg-message', 'Network error', 'error');
+    }
+};
+
+// Setup Google login button click handlers
+document.addEventListener('DOMContentLoaded', () => {
+    const farmerGoogleBtn = document.getElementById('farmer-google-signup');
+    const businessGoogleBtn = document.getElementById('business-google-signup');
+    
+    if (farmerGoogleBtn) {
+        farmerGoogleBtn.addEventListener('click', handleFarmerGoogleSignup);
+    }
+    
+    if (businessGoogleBtn) {
+        businessGoogleBtn.addEventListener('click', handleBusinessGoogleSignup);
     }
 });
