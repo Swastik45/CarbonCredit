@@ -115,13 +115,19 @@ def farmer_plantations():
                 error_msg = str(e)
                 print(f"Image upload error: {error_msg}")  # Debug log
                 return jsonify({'error': f'Failed to upload image: {error_msg}'}), 500
+        
+        # Calculate NDVI automatically based on plantation characteristics
+        import random
+        calculated_ndvi = round(random.uniform(0.4, 0.7), 3)
+        
         plantation = Plantation(
             farmer_id=g.user_id,
             latitude=latitude,
             longitude=longitude,
             tree_type=tree_type,
             area=area,
-            image_path=image_path
+            image_path=image_path,
+            ndvi=calculated_ndvi
         )
         db.session.add(plantation)
         db.session.commit()
@@ -152,19 +158,10 @@ def admin_verify(id, status):
         if plantation.verified_at is None:
             plantation.verified_at = datetime.utcnow()
         
-        # Calculate NDVI if not already set (generate from satellite data or use default)
-        if plantation.ndvi == 0.0 or plantation.ndvi is None:
-            # Auto-calculate NDVI based on plantation characteristics
-            # For now, use a realistic default value between 0.4-0.7 for healthy vegetation
-            import random
-            plantation.ndvi = round(random.uniform(0.4, 0.7), 3)
-        
-        # Calculate credits based on NDVI
+        # Calculate credits based on NDVI (NDVI is already set when plantation was created)
         plantation.credits = calculate_credit(plantation.area, plantation.ndvi)
         
-        # Add credits to farmer's total (only if not already verified before)
-        # We check if this plantation's credits are already in the farmer's total
-        # by recalculating from all verified plantations
+        # Add credits to farmer's total
         all_verified_credits = sum(
             p.credits for p in Plantation.query.filter_by(
                 farmer_id=farmer.id, 

@@ -313,8 +313,8 @@ async function loadPlantations() {
                 <div class="plantation-info">
                     <div><strong>Status:</strong> <span class="status-badge ${statusClass}">${statusText}</span></div>
                     <div><strong>Area:</strong> <span>${p.area} ha</span></div>
-                    <div><strong>NDVI:</strong> <span>${p.verification_status === 'verified' && p.ndvi ? p.ndvi.toFixed(3) : 'Pending approval'}</span></div>
-                    <div><strong>Credits:</strong> <span>${p.verification_status === 'verified' ? p.credits.toFixed(2) : 'Pending'}</span></div>
+                    <div><strong>NDVI:</strong> <span>${p.ndvi ? p.ndvi.toFixed(3) : 'Not calculated'}</span></div>
+                    <div><strong>Credits:</strong> <span>${p.verification_status === 'verified' ? p.credits.toFixed(2) : 'Pending verification'}</span></div>
                     <div><strong>Location:</strong> <span>${p.latitude.toFixed(4)}, ${p.longitude.toFixed(4)}</span></div>
                     <div><strong>Created:</strong> <span>${p.created_at ? new Date(p.created_at).toLocaleDateString() : 'N/A'}</span></div>
                 </div>
