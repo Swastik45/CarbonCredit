@@ -335,6 +335,51 @@ document.getElementById('farmer-login')?.addEventListener('submit', async (e) =>
 });
 
 // ============================================
+// FARMER REGISTRATION
+// ============================================
+
+document.getElementById('farmer-reg-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const button = e.target.querySelector('button[type="submit"]');
+    setLoading(button, true);
+    
+    const username = document.getElementById('farmer-reg-username').value;
+    const email = document.getElementById('farmer-reg-email').value;
+    const password = document.getElementById('farmer-reg-password').value;
+    
+    // Basic validation - at least 6 characters
+    if (password.length < 6) {
+        showMessage('farmer-reg-message', 'Password must be at least 6 characters long', 'error');
+        setLoading(button, false);
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/farmer/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email, password })
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+            localStorage.setItem('user_type', 'farmer');
+            localStorage.setItem('user_id', data.user_id);
+            showMessage('farmer-reg-message', 'Registration successful! Redirecting...', 'success');
+            setTimeout(() => {
+                window.location.href = 'farmer_dashboard.html';
+            }, 1000);
+        } else {
+            showMessage('farmer-reg-message', data.error || 'Registration failed', 'error');
+        }
+        setLoading(button, false);
+    } catch (error) {
+        showMessage('farmer-reg-message', 'Network error. Please check your connection.', 'error');
+        setLoading(button, false);
+    }
+});
+
+// ============================================
 // BUSINESS LOGIN
 // ============================================
 
