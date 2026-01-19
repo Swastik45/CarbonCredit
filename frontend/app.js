@@ -544,73 +544,18 @@ document.getElementById('business-login')?.addEventListener('submit', async (e) 
         const data = await response.json();
         
         if (response.ok) {
-            // 2FA required
-            localStorage.setItem('business_user_id', data.user_id);
-            showMessage('business-message', 'Check your email for 2FA code', 'success');
-            setTimeout(() => {
-                document.getElementById('business-login-form').classList.add('hidden');
-                document.getElementById('business-2fa-form').classList.remove('hidden');
-            }, 500);
-        } else if (response.status === 403) {
-            // Email verification required
-            localStorage.setItem('business_user_id', data.user_id);
-            showMessage('business-message', 'Please verify your email first', 'error');
-            setTimeout(() => {
-                document.getElementById('business-login-form').classList.add('hidden');
-                document.getElementById('business-email-verify-form').classList.remove('hidden');
-            }, 500);
-        } else if (response.status === 423) {
-            showMessage('business-message', data.error, 'error');
-        } else {
-            showMessage('business-message', data.error || 'Login failed', 'error');
-        }
-        setLoading(button, false);
-    } catch (error) {
-        showMessage('business-message', 'Network error. Please check your connection.', 'error');
-        setLoading(button, false);
-    }
-});
-
-// ============================================
-// BUSINESS 2FA VERIFICATION
-// ============================================
-
-document.getElementById('business-2fa-verify')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const button = e.target.querySelector('button[type="submit"]');
-    setLoading(button, true);
-    
-    const user_id = localStorage.getItem('business_user_id');
-    const code = document.getElementById('business-2fa-code').value;
-    
-    if (!code || code.length !== 6) {
-        showMessage('business-2fa-message', 'Please enter a 6-digit code', 'error');
-        setLoading(button, false);
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE}/business/verify-2fa`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id, code })
-        });
-        const data = await response.json();
-        
-        if (response.ok) {
-            localStorage.setItem('user_type', data.user_type);
+            localStorage.setItem('user_type', 'business');
             localStorage.setItem('user_id', data.user_id);
-            localStorage.removeItem('business_user_id');
-            showMessage('business-2fa-message', 'Login successful! Redirecting...', 'success');
+            showMessage('business-message', 'Login successful! Redirecting...', 'success');
             setTimeout(() => {
                 window.location.href = 'business_dashboard.html';
             }, 1000);
         } else {
-            showMessage('business-2fa-message', data.error || '2FA verification failed', 'error');
+            showMessage('business-message', data.error || 'Login failed', 'error');
             setLoading(button, false);
         }
     } catch (error) {
-        showMessage('business-2fa-message', 'Network error. Please check your connection.', 'error');
+        showMessage('business-message', 'Network error. Please check your connection.', 'error');
         setLoading(button, false);
     }
 });
@@ -628,29 +573,9 @@ document.getElementById('business-reg-form')?.addEventListener('submit', async (
     const email = document.getElementById('business-reg-email').value;
     const password = document.getElementById('business-reg-password').value;
     
-    // Validate password strength
-    if (password.length < 12) {
-        showMessage('business-reg-message', 'Password must be at least 12 characters long', 'error');
-        setLoading(button, false);
-        return;
-    }
-    if (!/[A-Z]/.test(password)) {
-        showMessage('business-reg-message', 'Password must contain at least one uppercase letter', 'error');
-        setLoading(button, false);
-        return;
-    }
-    if (!/[a-z]/.test(password)) {
-        showMessage('business-reg-message', 'Password must contain at least one lowercase letter', 'error');
-        setLoading(button, false);
-        return;
-    }
-    if (!/\d/.test(password)) {
-        showMessage('business-reg-message', 'Password must contain at least one digit', 'error');
-        setLoading(button, false);
-        return;
-    }
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-        showMessage('business-reg-message', 'Password must contain at least one special character (!@#$%^&*(),.?":{} |<>)', 'error');
+    // Basic validation - at least 6 characters
+    if (password.length < 6) {
+        showMessage('business-reg-message', 'Password must be at least 6 characters long', 'error');
         setLoading(button, false);
         return;
     }
@@ -664,13 +589,12 @@ document.getElementById('business-reg-form')?.addEventListener('submit', async (
         const data = await response.json();
         
         if (response.ok) {
-            localStorage.setItem('business_user_id', data.user_id);
-            showMessage('business-reg-message', 'Registration successful! Check your email for verification code.', 'success');
+            localStorage.setItem('user_type', 'business');
+            localStorage.setItem('user_id', data.user_id);
+            showMessage('business-reg-message', 'Registration successful! Redirecting...', 'success');
             setTimeout(() => {
-                document.getElementById('business-register-form').classList.add('hidden');
-                document.getElementById('business-email-verify-form').classList.remove('hidden');
-                document.getElementById('business-verify-code').focus();
-            }, 1500);
+                window.location.href = 'business_dashboard.html';
+            }, 1000);
         } else {
             showMessage('business-reg-message', data.error || 'Registration failed', 'error');
         }
@@ -681,73 +605,6 @@ document.getElementById('business-reg-form')?.addEventListener('submit', async (
     }
 });
 
-// ============================================
-// BUSINESS EMAIL VERIFICATION
-// ============================================
-
-document.getElementById('business-email-verify')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const button = e.target.querySelector('button[type="submit"]');
-    setLoading(button, true);
-    
-    const user_id = localStorage.getItem('business_user_id');
-    const code = document.getElementById('business-verify-code').value;
-    
-    if (!code || code.length !== 6) {
-        showMessage('business-verify-message', 'Please enter a 6-digit code', 'error');
-        setLoading(button, false);
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE}/business/verify-email`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id, code })
-        });
-        const data = await response.json();
-        
-        if (response.ok) {
-            localStorage.removeItem('business_user_id');
-            showMessage('business-verify-message', 'Email verified! Please login now.', 'success');
-            setTimeout(() => {
-                document.getElementById('business-email-verify-form').classList.add('hidden');
-                document.getElementById('business-login-form').classList.remove('hidden');
-                document.getElementById('business-login').reset();
-            }, 1500);
-        } else {
-            showMessage('business-verify-message', data.error || 'Verification failed', 'error');
-            setLoading(button, false);
-        }
-    } catch (error) {
-        showMessage('business-verify-message', 'Network error. Please check your connection.', 'error');
-        setLoading(button, false);
-    }
-});
-
-// Business resend code
-document.getElementById('business-resend-code')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    const userEmail = prompt('Enter your email address:');
-    if (!userEmail) return;
-    
-    try {
-        const response = await fetch(`${API_BASE}/business/resend-verification`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: userEmail })
-        });
-        const data = await response.json();
-        
-        if (response.ok) {
-            showMessage('business-verify-message', 'New verification code sent to your email', 'success');
-        } else {
-            showMessage('business-verify-message', data.error || 'Failed to resend code', 'error');
-        }
-    } catch (error) {
-        showMessage('business-verify-message', 'Network error', 'error');
-    }
-});
 
 // ============================================
 // ADMIN LOGIN
