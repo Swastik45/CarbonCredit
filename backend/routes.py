@@ -96,14 +96,6 @@ def farmer_login():
     
     return jsonify({'error': 'Invalid credentials'}), 401
 
-    
-
-@routes.route('/farmer/logout', methods=['POST'])
-@login_required
-def farmer_logout():
-    return jsonify({'message': 'Logout successful'}), 200
-
-
 @routes.route('/farmer/logout', methods=['POST'])
 @login_required
 def farmer_logout():
