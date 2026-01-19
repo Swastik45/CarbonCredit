@@ -313,15 +313,10 @@ async function loadPlantations() {
                 <div class="plantation-info">
                     <div><strong>Status:</strong> <span class="status-badge ${statusClass}">${statusText}</span></div>
                     <div><strong>Area:</strong> <span>${p.area} ha</span></div>
-                    <div><strong>NDVI:</strong> <span>${p.ndvi ? p.ndvi.toFixed(3) : 'Not calculated'}</span></div>
+                    <div><strong>NDVI:</strong> <span>${p.verification_status === 'verified' && p.ndvi ? p.ndvi.toFixed(3) : 'Pending approval'}</span></div>
                     <div><strong>Credits:</strong> <span>${p.verification_status === 'verified' ? p.credits.toFixed(2) : 'Pending'}</span></div>
                     <div><strong>Location:</strong> <span>${p.latitude.toFixed(4)}, ${p.longitude.toFixed(4)}</span></div>
                     <div><strong>Created:</strong> <span>${p.created_at ? new Date(p.created_at).toLocaleDateString() : 'N/A'}</span></div>
-                </div>
-                <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-                    ${!p.ndvi || p.ndvi === 0 ? `
-                        <button onclick="updateNDVI(${p.id})" class="secondary" style="flex: 1;">Calculate NDVI</button>
-                    ` : ''}
                 </div>
             `;
             
@@ -366,39 +361,5 @@ async function loadPlantations() {
     }
 }
 
-// Update NDVI
-async function updateNDVI(plantationId) {
-    if (!confirm('Calculate NDVI for this plantation? This will use satellite data to determine vegetation health.')) {
-        return;
-    }
-    
-    // Mock NDVI calculation (random value between 0.2 and 0.8)
-    const ndvi = (Math.random() * 0.6 + 0.2).toFixed(3);
-    
-    try {
-        const response = await fetch(`${API_BASE}/farmer/plantations/${plantationId}/update_ndvi`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'User-Id': userId,
-                'User-Type': userType
-            },
-            body: JSON.stringify({ ndvi: parseFloat(ndvi) })
-        });
-        
-        if (response.ok) {
-            showMessage(`NDVI updated to ${ndvi}. Credits calculated!`, 'success');
-            loadPlantations();
-            loadCredits();
-        } else {
-            const error = await response.json();
-            showMessage(error.error || 'Error updating NDVI', 'error');
-        }
-    } catch (error) {
-        showMessage('Network error. Please check your connection.', 'error');
-    }
-}
-
-// Make updateNDVI available globally
-window.updateNDVI = updateNDVI;
+// Make showImageModal available globally
 window.showImageModal = showImageModal;
