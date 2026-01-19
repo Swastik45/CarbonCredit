@@ -525,7 +525,7 @@ function showConfirm(message, callback) {
 function showInputModal(title, message, placeholder, callback) {
     const modal = document.getElementById('custom-modal');
     const modalTitle = document.getElementById('modal-title');
-    const body = document.getElementById('modal-body');
+    const body = document.querySelector('.modal-body');
     
     modalTitle.textContent = title;
     body.innerHTML = `
