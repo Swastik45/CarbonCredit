@@ -8,3 +8,9 @@ cloudinary>=1.36.0
 Flask-Mail==0.9.1
 email-validator==2.1.0
 gunicorn
+google-auth-oauthlib>=1.1.0
+google-auth>=2.25.0
+PyJWT>=2.8.0
+bcrypt>=4.1.0
+pyotp>=2.9.0
+qrcode>=7.4.2
