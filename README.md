@@ -2,7 +2,7 @@
 # 🌱 Carbon Credit Marketplace
 ### A Satellite-Verified Ecosystem for Sustainable Carbon Offsetting
 
-[![Live Demo](https://img.shields.io/badge/demo-online-brightgreen.svg)](https://carboncredit-frontend.onrender.com/)
+[Click Here](https://carboncredit-frontend.onrender.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 The **Carbon Credit Marketplace** is a full-stack platform designed to connect sustainable farmers with eco-conscious businesses. By leveraging **NDVI (Normalized Difference Vegetation Index)** analysis from satellite data, the platform ensures that carbon credits are backed by verifiable vegetation health, preventing greenwashing and promoting transparency.
