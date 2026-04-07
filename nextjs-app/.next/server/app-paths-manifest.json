@@ -1,9 +1,0 @@
-{
-  "/ndvi-guide/page": "app/ndvi-guide/page.js",
-  "/dashboard/admin/page": "app/dashboard/admin/page.js",
-  "/page": "app/page.js",
-  "/login/page": "app/login/page.js",
-  "/register/page": "app/register/page.js",
-  "/map/page": "app/map/page.js",
-  "/api/business/plantations/route": "app/api/business/plantations/route.js"
-}
