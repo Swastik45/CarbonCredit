@@ -88,6 +88,11 @@ export default function LoginPage() {
 
       const data = await res.json();
       if (!res.ok) {
+        // Handle rate limit errors specifically
+        if (data.rateLimited) {
+          setError('Email rate limit exceeded. Please wait a few minutes before trying again.');
+          return;
+        }
         setError(data.error || 'Failed to resend confirmation email');
         return;
       }

@@ -7,7 +7,7 @@ const supabaseServer = createClient(
 );
 
 export async function POST(request) {
-  const { username, password, email, userType } = await request.json();
+  const { username, password, email, userType, skipEmail } = await request.json();
 
   if (!username || !password || !email) {
     return Response.json({ error: 'Username, email, and password are required' }, { status: 400 });
@@ -33,6 +33,28 @@ export async function POST(request) {
           userType: 'admin',
           username: user.user_metadata?.username || username,
           emailSent: false, // No email confirmation needed for admin
+        },
+        { status: 201 }
+      );
+    }
+
+    // Development mode: skip email confirmation if requested
+    if (skipEmail && process.env.NODE_ENV === 'development') {
+      console.log('Development mode: Skipping email confirmation');
+      const user = await db.users.create({
+        username,
+        password,
+        email,
+        userType: userType || 'farmer',
+      });
+
+      return Response.json(
+        {
+          message: 'Registration successful! (Email confirmation skipped in development)',
+          userId: user.id,
+          userType: userType || 'farmer',
+          username: username,
+          emailSent: false,
         },
         { status: 201 }
       );
@@ -78,6 +100,22 @@ export async function POST(request) {
     // Handle specific Supabase errors
     if (error.message?.includes('already registered')) {
       return Response.json({ error: 'Email already registered' }, { status: 400 });
+    }
+
+    // Handle rate limit errors
+    if (error.message?.includes('rate limit') || error.message?.includes('too many requests') || error.message?.includes('email rate limit')) {
+      return Response.json({
+        error: 'Email rate limit exceeded. Please wait a few minutes before trying again, or use the resend confirmation option.',
+        rateLimited: true
+      }, { status: 429 });
+    }
+
+    // Handle email sending errors
+    if (error.message?.includes('email') || error.message?.includes('mail')) {
+      return Response.json({
+        error: 'Email sending failed. Please try again later or contact support.',
+        emailError: true
+      }, { status: 500 });
     }
 
     return Response.json({ error: error.message || 'Registration failed' }, { status: 500 });

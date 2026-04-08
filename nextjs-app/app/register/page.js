@@ -8,6 +8,7 @@ export default function RegisterPage() {
   const [userType, setUserType] = useState('farmer');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [skipEmail, setSkipEmail] = useState(false);
   const [formData, setFormData] = useState({ username: '', email: '', password: '' });
   const router = useRouter();
 
@@ -24,18 +25,31 @@ export default function RegisterPage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, userType }),
+        body: JSON.stringify({ ...formData, userType, skipEmail }),
       });
 
       const data = await res.json();
       if (!res.ok) {
+        // Handle rate limit errors specifically
+        if (data.rateLimited) {
+          setError('Email rate limit exceeded. Please wait a few minutes before trying again. You can also try logging in if you already have an account.');
+          return;
+        }
+        // Handle email errors
+        if (data.emailError) {
+          setError('Email sending failed. Please check your email address and try again, or contact support if the problem persists.');
+          return;
+        }
         setError(data.error || 'Registration failed');
         return;
       }
 
       // Show success message and redirect to login
       setError(''); // Clear any errors
-      alert('Registration successful! Please check your email to confirm your account before logging in.');
+      const successMessage = data.emailSent === false
+        ? 'Registration successful! You can now log in.'
+        : 'Registration successful! Please check your email to confirm your account before logging in.';
+      alert(successMessage);
       router.push('/login');
     } catch (err) {
       setError('Network error');
@@ -159,6 +173,22 @@ export default function RegisterPage() {
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all placeholder:text-slate-400 text-sm"
               />
             </div>
+
+            {/* Development mode checkbox - only show in development */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                <input
+                  id="skipEmail"
+                  type="checkbox"
+                  checked={skipEmail}
+                  onChange={(e) => setSkipEmail(e.target.checked)}
+                  className="w-4 h-4 text-emerald-600 bg-slate-50 border-slate-300 rounded focus:ring-emerald-500 focus:ring-2"
+                />
+                <label htmlFor="skipEmail" className="text-sm text-amber-800 font-medium">
+                  Skip email confirmation (Development only)
+                </label>
+              </div>
+            )}
 
             {error && (
               <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-[13px] font-medium">

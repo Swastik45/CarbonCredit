@@ -20,6 +20,15 @@ export async function POST(request) {
 
     if (error) {
       console.error('Resend confirmation error:', error);
+
+      // Handle rate limit errors specifically
+      if (error.message?.includes('rate limit') || error.message?.includes('too many requests') || error.message?.includes('email rate limit')) {
+        return Response.json({
+          error: 'Email rate limit exceeded. Please wait a few minutes before trying again.',
+          rateLimited: true
+        }, { status: 429 });
+      }
+
       return Response.json({ error: error.message || 'Failed to resend confirmation email' }, { status: 500 });
     }
 
@@ -28,6 +37,15 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error('Resend confirmation error:', error);
+
+    // Handle rate limit errors in catch block too
+    if (error.message?.includes('rate limit') || error.message?.includes('too many requests') || error.message?.includes('email rate limit')) {
+      return Response.json({
+        error: 'Email rate limit exceeded. Please wait a few minutes before trying again.',
+        rateLimited: true
+      }, { status: 429 });
+    }
+
     return Response.json({ error: 'Failed to resend confirmation email' }, { status: 500 });
   }
 }
