@@ -38,11 +38,16 @@ export async function POST(request) {
       );
     }
 
+    // Build a redirect target for the confirmation email
+    const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://carbon-credit-opal.vercel.app').replace(/\/$/, '');
+    const emailRedirectTo = `${siteUrl}/auth/confirm`;
+
     // For regular users (farmer/business), use signup flow with email confirmation
     const { data, error } = await supabaseServer.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo,
         data: {
           username,
           userType: userType || 'farmer',

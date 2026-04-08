@@ -10,8 +10,10 @@ export async function GET(request) {
   const token_hash = searchParams.get('token_hash');
   const type = searchParams.get('type');
 
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001').replace(/\/$/, '');
+
   if (!token_hash || type !== 'email') {
-    return Response.redirect(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'}/auth/confirm?error=invalid_link`);
+    return Response.redirect(`${siteUrl}/auth/confirm?error=invalid_link`);
   }
 
   try {
@@ -22,13 +24,13 @@ export async function GET(request) {
 
     if (error) {
       console.error('Email confirmation error:', error);
-      return Response.redirect(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'}/auth/confirm?error=failed`);
+      return Response.redirect(`${siteUrl}/auth/confirm?error=failed`);
     }
 
     // Success - redirect to confirmation page
-    return Response.redirect(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'}/auth/confirm?success=true`);
+    return Response.redirect(`${siteUrl}/auth/confirm?success=true`);
   } catch (error) {
     console.error('Email confirmation error:', error);
-    return Response.redirect(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3001'}/auth/confirm?error=failed`);
+    return Response.redirect(`${siteUrl}/auth/confirm?error=failed`);
   }
 }
