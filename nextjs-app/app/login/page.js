@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginPage() {
@@ -14,10 +14,10 @@ export default function LoginPage() {
   const [resendLoading, setResendLoading] = useState(false);
   const [formData, setFormData] = useState({ username: '', password: '' });
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Check for URL parameters
+    if (typeof window === 'undefined') return;
+    const searchParams = new URLSearchParams(window.location.search);
     const message = searchParams.get('message');
     const error = searchParams.get('error');
 
@@ -28,7 +28,7 @@ export default function LoginPage() {
     } else if (error === 'confirmation_failed') {
       setError('Email confirmation failed. Please try registering again.');
     }
-  }, [searchParams]);
+  }, []);
 
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
