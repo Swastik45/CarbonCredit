@@ -15,7 +15,7 @@ pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [Live](https://carbon-credit-opal.vercel.app/) in your browser.
 
 ---
 
