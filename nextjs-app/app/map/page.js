@@ -26,12 +26,7 @@ export default function MapPage() {
 
   const loadPlantations = async () => {
     try {
-      const res = await fetch('/api/business/plantations', {
-        headers: {
-          'x-user-id': '1',
-          'x-user-type': 'business',
-        }
-      });
+      const res = await fetch('/api/business/plantations');
       
       if (res.ok) {
         const data = await res.json();

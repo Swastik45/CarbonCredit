@@ -2,15 +2,15 @@ import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
 
 export async function GET(request) {
-  const auth = requireAuth(request.headers, 'business');
+  const auth = await requireAuth(request.headers, 'business');
   if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
 
-  const purchases = db.purchases.findByBusinessId(auth.userId);
+  const purchases = await db.purchases.findByBusinessId(auth.userId);
   return Response.json(purchases);
 }
 
 export async function POST(request) {
-  const auth = requireAuth(request.headers, 'business');
+  const auth = await requireAuth(request.headers, 'business');
   if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
 
   const body = await request.json();
@@ -20,9 +20,9 @@ export async function POST(request) {
     return Response.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
-  const purchase = db.purchases.create({
-    businessId: auth.userId,
-    plantationId,
+  const purchase = await db.purchases.create({
+    business_id: auth.userId,
+    plantation_id: plantationId,
     credits: parseFloat(credits),
     price: parseFloat(credits) * 6.5,
   });

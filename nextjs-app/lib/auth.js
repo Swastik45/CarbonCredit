@@ -1,27 +1,52 @@
-// Authentication utilities
-export function validatePassword(password) {
-  if (password.length < 6) return false;
-  return true;
-}
+import { createClient } from '@supabase/supabase-js';
 
-export function validateEmail(email) {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
+const supabaseServer = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export function getAuthFromHeaders(headers) {
-  const userId = headers.get('x-user-id');
-  const userType = headers.get('x-user-type');
-  return { userId: userId ? parseInt(userId) : null, userType };
+  const authHeader = headers.get('authorization') || headers.get('Authorization');
+  if (!authHeader) return null;
+
+  const token = authHeader.split(' ')[1];
+  return token || null;
 }
 
-export function requireAuth(headers, expectedType = null) {
-  const { userId, userType } = getAuthFromHeaders(headers);
-  if (!userId || !userType) {
+export async function requireAuth(headers, expectedType = null) {
+  const token = getAuthFromHeaders(headers);
+  if (!token) {
     return { error: 'Unauthorized', status: 401 };
   }
+
+  // Special case: Admin token (hardcoded)
+  if (token.startsWith('admin-token-')) {
+    if (expectedType && expectedType !== 'admin') {
+      return { error: 'Forbidden', status: 403 };
+    }
+    return {
+      userId: 'admin-user',
+      userType: 'admin',
+      email: 'admin@system.local',
+      username: 'admin',
+    };
+  }
+
+  // Regular user: verify with Supabase
+  const { data, error } = await supabaseServer.auth.getUser(token);
+  if (error || !data?.user) {
+    return { error: 'Unauthorized', status: 401 };
+  }
+
+  const userType = data.user.user_metadata?.userType || null;
   if (expectedType && userType !== expectedType) {
     return { error: 'Forbidden', status: 403 };
   }
-  return { userId, userType };
+
+  return {
+    userId: data.user.id,
+    userType,
+    email: data.user.email,
+    username: data.user.user_metadata?.username,
+  };
 }

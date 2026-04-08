@@ -10,10 +10,10 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    const userId = localStorage.getItem('userId');
+    const token = localStorage.getItem('accessToken');
     const userType = localStorage.getItem('userType');
     
-    if (!userId || userType !== 'admin') {
+    if (!token || userType !== 'admin') {
       router.push('/login');
       return;
     }
@@ -23,8 +23,8 @@ export default function AdminDashboard() {
 
   const loadData = async () => {
     try {
-      const userId = localStorage.getItem('userId');
-      const headers = { 'x-user-id': userId, 'x-user-type': 'admin' };
+      const token = localStorage.getItem('accessToken');
+      const headers = { Authorization: `Bearer ${token}` };
       const res = await fetch('/api/admin/plantations', { headers });
       const data = await res.json();
       setPlantations(data);
@@ -37,12 +37,11 @@ export default function AdminDashboard() {
 
   const handleVerify = async (plantationId, status) => {
     try {
-      const userId = localStorage.getItem('userId');
+      const token = localStorage.getItem('accessToken');
       const res = await fetch('/api/admin/verify', {
         method: 'POST',
         headers: {
-          'x-user-id': userId,
-          'x-user-type': 'admin',
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ plantationId, status }),
@@ -55,7 +54,12 @@ export default function AdminDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.clear();
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userType');
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('user_type');
+    localStorage.removeItem('username');
     router.push('/');
   };
 
@@ -132,21 +136,21 @@ export default function AdminDashboard() {
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">Plot ID</span>
-                      <h3 className="text-lg font-black text-slate-900">#{p.id} — {p.treeType}</h3>
+                      <h3 className="text-lg font-black text-slate-900">#{p.id} — {p.tree_type}</h3>
                     </div>
                     <div className="bg-slate-100 px-3 py-1 rounded-md font-mono text-[10px] font-bold">
-                      FARMER_{p.farmerId}
+                      FARMER_{p.farmer_id}
                     </div>
                   </div>
 
                   <div className="space-y-3 mb-8">
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-400">Satellite NDVI</span>
-                      <span className="font-bold text-emerald-600">{p.ndvi.toFixed(3)}</span>
+                      <span className="font-bold text-emerald-600">{(p.ndvi || 0).toFixed(3)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-400">Physical Area</span>
-                      <span className="font-bold">{p.area} Hectares</span>
+                      <span className="font-bold">{p.area || 0} Hectares</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-slate-400">Coordinates</span>
@@ -192,13 +196,13 @@ export default function AdminDashboard() {
                 {plantations.map(p => (
                   <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-8 py-5 font-mono text-xs font-bold text-slate-400">#00{p.id}</td>
-                    <td className="px-8 py-5 font-bold text-slate-900 text-sm">{p.treeType}</td>
-                    <td className="px-8 py-5 text-sm text-slate-600">ID: {p.farmerId}</td>
+                    <td className="px-8 py-5 font-bold text-slate-900 text-sm">{p.tree_type}</td>
+                    <td className="px-8 py-5 text-sm text-slate-600">ID: {p.farmer_id}</td>
                     <td className="px-8 py-5">
                       <div className="text-xs">
-                        <span className="font-bold text-slate-900">{p.area} ha</span>
+                        <span className="font-bold text-slate-900">{p.area || 0} ha</span>
                         <span className="mx-2 text-slate-200">|</span>
-                        <span className="font-mono text-emerald-600">{p.ndvi.toFixed(2)}</span>
+                        <span className="font-mono text-emerald-600">{(p.ndvi || 0).toFixed(2)}</span>
                       </div>
                     </td>
                     <td className="px-8 py-5">

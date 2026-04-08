@@ -2,9 +2,13 @@ import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
 
 export async function GET(request) {
-  const auth = requireAuth(request.headers, 'farmer');
+  const auth = await requireAuth(request.headers, 'farmer');
   if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
 
-  const user = db.users.findById(auth.userId);
-  return Response.json({ totalCredits: user?.totalCredits || 0 });
+  const plantations = await db.plantations.findByFarmerId(auth.userId);
+  const totalCredits = plantations
+    .filter((p) => p.status === 'verified')
+    .reduce((sum, p) => sum + (p.credits || 0), 0);
+
+  return Response.json({ totalCredits });
 }

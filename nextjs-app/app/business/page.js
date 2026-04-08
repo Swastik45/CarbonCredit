@@ -39,7 +39,7 @@ export default function BusinessPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const userType = window.localStorage.getItem('user_type');
+    const userType = window.localStorage.getItem('userType');
     if (userType !== 'business') {
       router.replace('/');
       return;
@@ -60,8 +60,12 @@ export default function BusinessPage() {
   };
 
   const handleLogout = () => {
+    window.localStorage.removeItem('accessToken');
+    window.localStorage.removeItem('userType');
+    window.localStorage.removeItem('userId');
     window.localStorage.removeItem('user_type');
     window.localStorage.removeItem('user_id');
+    window.localStorage.removeItem('username');
     router.push('/');
   };
 

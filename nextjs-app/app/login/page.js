@@ -1,15 +1,34 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function LoginPage() {
   const [userType, setUserType] = useState('farmer');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
   const [formData, setFormData] = useState({ username: '', password: '' });
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    // Check for URL parameters
+    const message = searchParams.get('message');
+    const error = searchParams.get('error');
+
+    if (message === 'email_confirmed') {
+      setSuccess('Email confirmed successfully! You can now log in.');
+    } else if (error === 'invalid_confirmation_link') {
+      setError('Invalid confirmation link. Please try again.');
+    } else if (error === 'confirmation_failed') {
+      setError('Email confirmation failed. Please try registering again.');
+    }
+  }, [searchParams]);
 
   const handleChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -19,6 +38,8 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
+    setNeedsConfirmation(false);
 
     try {
       const res = await fetch('/api/auth/login', {
@@ -29,19 +50,54 @@ export default function LoginPage() {
 
       const data = await res.json();
       if (!res.ok) {
+        if (data.needsConfirmation) {
+          setNeedsConfirmation(true);
+          setConfirmationEmail(data.email);
+          setError('Email not confirmed. Please check your email and click the confirmation link.');
+          return;
+        }
         setError(data.error || 'Login failed');
         return;
       }
 
       localStorage.setItem('userId', data.userId);
+      localStorage.setItem('user_id', data.userId);
       localStorage.setItem('userType', data.userType);
+      localStorage.setItem('user_type', data.userType);
       localStorage.setItem('username', data.username);
+      localStorage.setItem('accessToken', data.accessToken);
 
-      router.push(`/dashboard/${userType}`);
+      router.push(`/dashboard/${data.userType}`);
     } catch (err) {
       setError('Network error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!confirmationEmail) return;
+
+    setResendLoading(true);
+    try {
+      const res = await fetch('/api/auth/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: confirmationEmail }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to resend confirmation email');
+        return;
+      }
+
+      setSuccess('Confirmation email sent! Please check your email.');
+      setError('');
+    } catch (err) {
+      setError('Failed to resend confirmation email');
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -142,6 +198,22 @@ export default function LoginPage() {
             {error && (
               <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium animate-shake">
                 ⚠️ {error}
+                {needsConfirmation && (
+                  <button
+                    type="button"
+                    onClick={handleResendConfirmation}
+                    disabled={resendLoading}
+                    className="block mt-2 text-xs font-bold text-emerald-600 hover:text-emerald-700 underline"
+                  >
+                    {resendLoading ? 'Sending...' : 'Resend confirmation email'}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {success && (
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 text-sm font-medium">
+                ✅ {success}
               </div>
             )}
 

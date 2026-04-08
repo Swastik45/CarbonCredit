@@ -11,10 +11,10 @@ export default function BusinessDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    const userId = localStorage.getItem('userId');
+    const token = localStorage.getItem('accessToken');
     const userType = localStorage.getItem('userType');
     
-    if (!userId || userType !== 'business') {
+    if (!token || userType !== 'business') {
       router.push('/login');
       return;
     }
@@ -24,8 +24,8 @@ export default function BusinessDashboard() {
 
   const loadData = async () => {
     try {
-      const userId = localStorage.getItem('userId');
-      const headers = { 'x-user-id': userId, 'x-user-type': 'business' };
+      const token = localStorage.getItem('accessToken');
+      const headers = { Authorization: `Bearer ${token}` };
 
       const [plantRes, purchaseRes] = await Promise.all([
         fetch('/api/business/plantations', { headers }),
@@ -46,12 +46,11 @@ export default function BusinessDashboard() {
 
   const handlePurchase = async (plantationId, credits) => {
     try {
-      const userId = localStorage.getItem('userId');
+      const token = localStorage.getItem('accessToken');
       const res = await fetch('/api/business/purchases', {
         method: 'POST',
         headers: {
-          'x-user-id': userId,
-          'x-user-type': 'business',
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ plantationId, credits }),
@@ -64,7 +63,12 @@ export default function BusinessDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.clear();
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userType');
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('user_type');
+    localStorage.removeItem('username');
     router.push('/');
   };
 
@@ -145,23 +149,23 @@ export default function BusinessDashboard() {
                     alt="Plantation"
                    />
                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-bold text-emerald-700 uppercase tracking-widest shadow-sm">
-                      NDVI {p.ndvi.toFixed(2)}
+                      NDVI {(p.ndvi || 0).toFixed(2)}
                    </div>
                 </div>
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-bold text-slate-900">{p.treeType} Plantation</h3>
+                    <h3 className="text-xl font-bold text-slate-900">{p.tree_type} Plantation</h3>
                     <p className="text-xs font-mono text-slate-400">ID: {p.id}</p>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div className="bg-slate-50 p-3 rounded-xl">
                       <p className="text-[10px] font-bold text-slate-400 uppercase">Available</p>
-                      <p className="text-sm font-bold text-slate-900">{p.credits.toFixed(1)} <span className="text-[10px] text-slate-400">CR</span></p>
+                      <p className="text-sm font-bold text-slate-900">{(p.credits || 0).toFixed(1)} <span className="text-[10px] text-slate-400">CR</span></p>
                     </div>
                     <div className="bg-slate-50 p-3 rounded-xl">
                       <p className="text-[10px] font-bold text-slate-400 uppercase">Area</p>
-                      <p className="text-sm font-bold text-slate-900">{p.area} <span className="text-[10px] text-slate-400">HA</span></p>
+                      <p className="text-sm font-bold text-slate-900">{p.area || 0} <span className="text-[10px] text-slate-400">HA</span></p>
                     </div>
                   </div>
 
@@ -198,8 +202,8 @@ export default function BusinessDashboard() {
                 <tbody className="divide-y divide-slate-100">
                   {purchases.map(p => (
                     <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-8 py-5 text-sm font-bold text-slate-900 font-mono tracking-tighter">#PLN-{p.plantationId}</td>
-                      <td className="px-8 py-5 text-sm font-medium text-emerald-600">+{p.credits.toFixed(2)} Credits</td>
+                      <td className="px-8 py-5 text-sm font-bold text-slate-900 font-mono tracking-tighter">#PLN-{p.plantation_id}</td>
+                      <td className="px-8 py-5 text-sm font-medium text-emerald-600">+{(p.credits || 0).toFixed(2)} Credits</td>
                       <td className="px-8 py-5 text-sm font-bold text-slate-900 font-mono">${p.price.toFixed(2)}</td>
                       <td className="px-8 py-5 text-sm text-slate-500 font-medium">
                         {new Date(p.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}

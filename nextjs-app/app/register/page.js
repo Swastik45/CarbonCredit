@@ -33,9 +33,9 @@ export default function RegisterPage() {
         return;
       }
 
-      localStorage.setItem('userId', data.userId);
-      localStorage.setItem('userType', data.userType);
-
+      // Show success message and redirect to login
+      setError(''); // Clear any errors
+      alert('Registration successful! Please check your email to confirm your account before logging in.');
       router.push('/login');
     } catch (err) {
       setError('Network error');

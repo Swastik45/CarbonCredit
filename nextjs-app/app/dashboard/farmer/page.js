@@ -9,6 +9,7 @@ export default function FarmerDashboard() {
   const [credits, setCredits] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [locationLoading, setLocationLoading] = useState(false);
   const [formData, setFormData] = useState({
     latitude: '',
     longitude: '',
@@ -19,10 +20,10 @@ export default function FarmerDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    const userId = localStorage.getItem('userId');
+    const token = localStorage.getItem('accessToken');
     const userType = localStorage.getItem('userType');
     
-    if (!userId || userType !== 'farmer') {
+    if (!token || userType !== 'farmer') {
       router.push('/login');
       return;
     }
@@ -32,10 +33,9 @@ export default function FarmerDashboard() {
 
   const loadData = async () => {
     try {
-      const userId = localStorage.getItem('userId');
+      const token = localStorage.getItem('accessToken');
       const headers = {
-        'x-user-id': userId,
-        'x-user-type': 'farmer',
+        Authorization: `Bearer ${token}`,
       };
 
       const [plantRes, creditsRes] = await Promise.all([
@@ -59,15 +59,49 @@ export default function FarmerDashboard() {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  const getLocation = async () => {
+    setLocationLoading(true);
+    setError('');
+
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser');
+      setLocationLoading(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setFormData(prev => ({
+          ...prev,
+          latitude: latitude.toFixed(4),
+          longitude: longitude.toFixed(4),
+        }));
+        setLocationLoading(false);
+      },
+      (error) => {
+        let errorMessage = 'Failed to get location';
+        if (error.code === error.PERMISSION_DENIED) {
+          errorMessage = 'Location permission denied. Please enable location access in your browser settings.';
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errorMessage = 'Location information is unavailable.';
+        } else if (error.code === error.TIMEOUT) {
+          errorMessage = 'The request to get location timed out.';
+        }
+        setError(errorMessage);
+        setLocationLoading(false);
+      }
+    );
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const userId = localStorage.getItem('userId');
+      const token = localStorage.getItem('accessToken');
       const res = await fetch('/api/farmer/plantations', {
         method: 'POST',
         headers: {
-          'x-user-id': userId,
-          'x-user-type': 'farmer',
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
@@ -83,7 +117,12 @@ export default function FarmerDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.clear();
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('userId');
+    localStorage.removeItem('userType');
+    localStorage.removeItem('user_id');
+    localStorage.removeItem('user_type');
+    localStorage.removeItem('username');
     router.push('/');
   };
 
@@ -153,6 +192,22 @@ export default function FarmerDashboard() {
                   </div>
                 </div>
 
+                <button
+                  type="button"
+                  onClick={getLocation}
+                  disabled={locationLoading}
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2"
+                >
+                  {locationLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Getting Location...
+                    </>
+                  ) : (
+                    <>📍 Get Current Location</>
+                  )}
+                </button>
+
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Tree Species</label>
                   <input name="treeType" value={formData.treeType} onChange={handleChange} placeholder="e.g. Mango, Teak" required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
@@ -208,10 +263,10 @@ export default function FarmerDashboard() {
 
                     <div className="flex items-center gap-4 mb-6">
                       <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
-                        {p.treeType.toLowerCase().includes('mango') ? '🥭' : '🌳'}
+                        {p.tree_type && p.tree_type.toLowerCase().includes('mango') ? '🥭' : '🌳'}
                       </div>
                       <div>
-                        <h3 className="font-bold text-slate-900">{p.treeType}</h3>
+                        <h3 className="font-bold text-slate-900">{p.tree_type}</h3>
                         <p className="text-xs text-slate-400 font-mono tracking-tighter">
                           {p.latitude.toFixed(4)}, {p.longitude.toFixed(4)}
                         </p>
@@ -221,15 +276,15 @@ export default function FarmerDashboard() {
                     <div className="grid grid-cols-3 gap-2 border-t border-slate-50 pt-6">
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Area</p>
-                        <p className="text-sm font-bold text-slate-700">{p.area} <span className="text-[10px] font-medium text-slate-400">ha</span></p>
+                        <p className="text-sm font-bold text-slate-700">{p.area || 0} <span className="text-[10px] font-medium text-slate-400">ha</span></p>
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">NDVI</p>
-                        <p className="text-sm font-bold text-emerald-600">{p.ndvi.toFixed(3)}</p>
+                        <p className="text-sm font-bold text-emerald-600">{(p.ndvi || 0).toFixed(3)}</p>
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Credits</p>
-                        <p className="text-sm font-bold text-slate-700">{p.credits.toFixed(1)}</p>
+                        <p className="text-sm font-bold text-slate-700">{(p.credits || 0).toFixed(1)}</p>
                       </div>
                     </div>
                   </div>

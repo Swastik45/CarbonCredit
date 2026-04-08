@@ -1,10 +1,10 @@
 import { db } from '@/lib/db';
 
 export async function GET() {
-  const all = db.plantations.all();
+  const all = await db.plantations.all();
   const verified = all.filter(p => p.status === 'verified');
-  const totalCredits = verified.reduce((sum, p) => sum + p.credits, 0);
-  const farmers = new Set(verified.map(p => p.farmerId)).size;
+  const totalCredits = verified.reduce((sum, p) => sum + (p.credits || 0), 0);
+  const farmers = new Set(verified.map(p => p.farmer_id)).size;
 
   return Response.json({
     activePlantations: verified.length,
