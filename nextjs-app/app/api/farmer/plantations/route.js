@@ -6,7 +6,14 @@ export async function GET(request) {
   if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
 
   const plantations = await db.plantations.findByFarmerId(auth.userId);
-  return Response.json(plantations);
+  
+  // Add farmer username to each plantation
+  const plantationsWithUsername = plantations.map(p => ({
+    ...p,
+    farmer_username: auth.username,
+  }));
+  
+  return Response.json(plantationsWithUsername);
 }
 
 export async function POST(request) {
@@ -22,6 +29,7 @@ export async function POST(request) {
 
   const plantation = await db.plantations.create({
     farmer_id: auth.userId,
+    farmer_username: auth.username, // Store farmer username
     latitude: parseFloat(latitude),
     longitude: parseFloat(longitude),
     tree_type: treeType,

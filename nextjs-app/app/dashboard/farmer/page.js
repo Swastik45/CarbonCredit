@@ -24,6 +24,9 @@ export default function FarmerDashboard() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date');
+  const [username, setUsername] = useState('');
+  const [expandedPlantation, setExpandedPlantation] = useState(null);
+  const [uploadingPlantationId, setUploadingPlantationId] = useState(null);
   const [formData, setFormData] = useState({
     latitude: '',
     longitude: '',
@@ -36,12 +39,14 @@ export default function FarmerDashboard() {
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     const userType = localStorage.getItem('userType');
+    const savedUsername = localStorage.getItem('username');
     
     if (!token || userType !== 'farmer') {
       router.push('/login');
       return;
     }
 
+    setUsername(savedUsername || 'Farmer');
     loadData();
 
     // Poll for updates every 5 seconds to reflect admin verification changes
@@ -164,6 +169,43 @@ export default function FarmerDashboard() {
     localStorage.removeItem('user_type');
     localStorage.removeItem('username');
     router.push('/');
+  };
+
+  const handleUploadDocument = async (plantationId, file, documentType) => {
+    if (!file) return;
+
+    setUploadingPlantationId(plantationId);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('plantationId', plantationId);
+      formData.append('type', documentType);
+
+      const token = localStorage.getItem('accessToken');
+      const res = await fetch('/api/farmer/upload', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Update the plantation in the local state
+        setPlantations(prev =>
+          prev.map(p => (p.id === plantationId ? data.plantation : p))
+        );
+        alert(`${documentType === 'land_document' ? 'Land Document' : 'Farm Image'} uploaded successfully!`);
+      } else {
+        alert('Upload failed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('Upload failed. Please try again.');
+    } finally {
+      setUploadingPlantationId(null);
+    }
   };
 
   const verifiedCount = plantations.filter(p => p.status === 'verified').length;
@@ -342,42 +384,129 @@ export default function FarmerDashboard() {
                   </div>
                 ) : (
                   filteredPlantations.map(p => (
-                    <div key={p.id} className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow group relative overflow-hidden">
-                      <div className="absolute top-0 right-0 pt-4 pr-6">
-                        <span className={`
-                          text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full
-                          ${p.status === 'verified' ? 'bg-emerald-100 text-emerald-700' : p.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}
-                        `}>
-                          {p.status}
-                        </span>
+                    <div key={p.id} className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+                      <div className="p-6 pb-4">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-4 flex-1">
+                            <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-xl">
+                              {p.tree_type && p.tree_type.toLowerCase().includes('mango') ? '🥭' : '🌳'}
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-slate-900">{p.tree_type}</h3>
+                              <p className="text-xs text-slate-400 font-mono">
+                                {p.latitude?.toFixed(4)}, {p.longitude?.toFixed(4)}
+                              </p>
+                            </div>
+                          </div>
+                          <span className={`
+                            text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full
+                            ${p.status === 'verified' ? 'bg-emerald-100 text-emerald-700' : p.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}
+                          `}>
+                            {p.status}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 border-t border-slate-50 pt-4 mb-4">
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Area</p>
+                            <p className="text-sm font-bold text-slate-700">{p.area || 0}<span className="text-[10px] text-slate-400"> ha</span></p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">NDVI</p>
+                            <p className="text-sm font-bold text-emerald-600">{(p.ndvi || 0).toFixed(3)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Credits</p>
+                            <p className="text-sm font-bold text-slate-700">{(p.credits || 0).toFixed(1)}</p>
+                          </div>
+                        </div>
+
+                        {/* Document Status */}
+                        <div className="flex gap-2">
+                          <div className="flex-1 text-center py-2 bg-blue-50 rounded-lg">
+                            <p className="text-xs text-blue-600 font-bold">
+                              {p.land_document ? '✓ Land Doc' : '○ Land Doc'}
+                            </p>
+                          </div>
+                          <div className="flex-1 text-center py-2 bg-purple-50 rounded-lg">
+                            <p className="text-xs text-purple-600 font-bold">
+                              {p.farm_image ? '✓ Farm Image' : '○ Farm Image'}
+                            </p>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-4 mb-6">
-                        <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-xl">
-                          {p.tree_type && p.tree_type.toLowerCase().includes('mango') ? '🥭' : '🌳'}
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-slate-900">{p.tree_type}</h3>
-                          <p className="text-xs text-slate-400 font-mono">
-                            {p.latitude?.toFixed(4)}, {p.longitude?.toFixed(4)}
-                          </p>
-                        </div>
-                      </div>
+                      {/* Expandable Upload Section */}
+                      <button
+                        onClick={() => setExpandedPlantation(expandedPlantation === p.id ? null : p.id)}
+                        className="w-full px-6 py-3 border-t border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-600 text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                      >
+                        {expandedPlantation === p.id ? '△' : '▽'} Upload Documents
+                      </button>
 
-                      <div className="grid grid-cols-3 gap-2 border-t border-slate-50 pt-6">
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Area</p>
-                          <p className="text-sm font-bold text-slate-700">{p.area || 0}<span className="text-[10px] text-slate-400"> ha</span></p>
+                      {expandedPlantation === p.id && (
+                        <div className="px-6 py-4 bg-gradient-to-b from-slate-50 to-white border-t border-slate-100 space-y-4">
+                          {/* Land Document Upload */}
+                          <div>
+                            <p className="text-xs font-bold text-slate-600 mb-2 uppercase">📋 Land Document</p>
+                            <label className="block relative cursor-pointer">
+                              <input
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                disabled={uploadingPlantationId === p.id}
+                                onChange={(e) => {
+                                  if (e.target.files?.[0]) {
+                                    handleUploadDocument(p.id, e.target.files[0], 'land_document');
+                                  }
+                                }}
+                                className="sr-only"
+                              />
+                              <div className={`
+                                border-2 border-dashed rounded-lg p-3 text-center
+                                ${uploadingPlantationId === p.id ? 'border-slate-300 bg-slate-100' : 'border-blue-300 bg-blue-50 hover:bg-blue-100'}
+                                transition-colors
+                              `}>
+                                <p className="text-xs text-slate-600 font-semibold">
+                                  {uploadingPlantationId === p.id ? '⏳ Uploading...' : '📤 Click to upload or drag'}
+                                </p>
+                                {p.land_document && !uploadingPlantationId && (
+                                  <p className="text-[11px] text-green-600 font-bold mt-1">✓ {p.land_document_name || 'Document uploaded'}</p>
+                                )}
+                              </div>
+                            </label>
+                          </div>
+
+                          {/* Farm Image Upload */}
+                          <div>
+                            <p className="text-xs font-bold text-slate-600 mb-2 uppercase">🖼️ Farm Image</p>
+                            <label className="block relative cursor-pointer">
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                disabled={uploadingPlantationId === p.id}
+                                onChange={(e) => {
+                                  if (e.target.files?.[0]) {
+                                    handleUploadDocument(p.id, e.target.files[0], 'farm_image');
+                                  }
+                                }}
+                                className="sr-only"
+                              />
+                              <div className={`
+                                border-2 border-dashed rounded-lg p-3 text-center
+                                ${uploadingPlantationId === p.id ? 'border-slate-300 bg-slate-100' : 'border-purple-300 bg-purple-50 hover:bg-purple-100'}
+                                transition-colors
+                              `}>
+                                <p className="text-xs text-slate-600 font-semibold">
+                                  {uploadingPlantationId === p.id ? '⏳ Uploading...' : '📤 Click to upload or drag'}
+                                </p>
+                                {p.farm_image && !uploadingPlantationId && (
+                                  <p className="text-[11px] text-green-600 font-bold mt-1">✓ {p.farm_image_name || 'Image uploaded'}</p>
+                                )}
+                              </div>
+                            </label>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">NDVI</p>
-                          <p className="text-sm font-bold text-emerald-600">{(p.ndvi || 0).toFixed(3)}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Credits</p>
-                          <p className="text-sm font-bold text-slate-700">{(p.credits || 0).toFixed(1)}</p>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   ))
                 )}

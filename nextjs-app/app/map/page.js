@@ -19,6 +19,8 @@ const MapComponent = dynamic(() => import('@/components/MapComponent'), {
 export default function MapPage() {
   const [plantations, setPlantations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchResults, setSearchResults] = useState(null);
+  const [nearbyPlantations, setNearbyPlantations] = useState([]);
 
   useEffect(() => {
     loadPlantations();
@@ -36,6 +38,24 @@ export default function MapPage() {
       console.error('Failed to load plantations');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSearch = async (location) => {
+    setSearchResults(location);
+    
+    try {
+      // Fetch nearby plantations
+      const res = await fetch(
+        `/api/geo/nearby?lat=${location.latitude}&lon=${location.longitude}&radius=50`
+      );
+      
+      if (res.ok) {
+        const data = await res.json();
+        setNearbyPlantations(data.plantations || []);
+      }
+    } catch (err) {
+      console.error('Failed to load nearby plantations:', err);
     }
   };
 
@@ -73,7 +93,7 @@ export default function MapPage() {
                 <p className="text-slate-400 font-medium">Loading geospatial data...</p>
              </div>
           ) : (
-            <MapComponent plantations={plantations} />
+            <MapComponent plantations={plantations} onSearch={handleSearch} showSearch={true} />
           )}
           
           {/* Floating Instructions Toggle (Mobile Only) */}
@@ -84,6 +104,83 @@ export default function MapPage() {
           </div>
         </div>
       </section>
+
+      {/* ── Search Results ── */}
+      {searchResults && (
+        <section className="py-8 px-6 max-w-7xl mx-auto bg-blue-50 rounded-3xl my-8 border border-blue-200">
+          <div className="flex items-start justify-between gap-6">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">📍 Search Results</h2>
+              <p className="text-slate-600 mb-4">
+                Location: <span className="font-semibold text-blue-700">{searchResults.name}</span>
+              </p>
+              <p className="text-sm text-slate-500">
+                Found <span className="font-bold text-emerald-600">{nearbyPlantations.length}</span> plantations within 50km radius
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setSearchResults(null);
+                setNearbyPlantations([]);
+              }}
+              className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+
+          {nearbyPlantations.length > 0 && (
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {nearbyPlantations.map(plantation => (
+                <div
+                  key={plantation.id}
+                  className="bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-2xl">
+                      {plantation.tree_type?.toLowerCase().includes('mango') ? '🥭' : '🌳'}
+                    </span>
+                    <div>
+                      <h3 className="font-semibold text-slate-900">{plantation.tree_type}</h3>
+                      <p className="text-xs text-slate-500">👨‍🌾 {plantation.farmer_username || 'Farmer'}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <p className="text-slate-500 font-medium">Area</p>
+                      <p className="font-bold text-slate-900">{plantation.area} ha</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 font-medium">Distance</p>
+                      <p className="font-bold text-blue-600">{(plantation.distance || 0).toFixed(1)} km</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 font-medium">NDVI</p>
+                      <p className="font-bold text-emerald-600">{(plantation.ndvi || 0).toFixed(3)}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-500 font-medium">Status</p>
+                      <p className={`font-bold text-xs px-2 py-1 rounded w-fit ${
+                        plantation.status === 'verified' ? 'bg-emerald-100 text-emerald-700' :
+                        plantation.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                        {plantation.status}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {nearbyPlantations.length === 0 && (
+            <div className="mt-6 p-4 bg-white rounded-xl border border-blue-200 text-center">
+              <p className="text-slate-600">No plantations found in this area. Try searching another location!</p>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* ── Stats Dashboard ── */}
       <section className="py-12 px-6 max-w-7xl mx-auto">
