@@ -1,65 +1,93 @@
-# CarbonCredit - Next.js Full-Stack App
+# CarbonCredit Marketplace
 
-A modern, full-stack carbon credit marketplace built entirely with Next.js. Connect farmers, businesses, and administrators to verify and trade carbon credits using NDVI satellite data.
+A comprehensive platform for trading satellite-verified carbon credits, connecting farmers, businesses, and administrators in a transparent carbon market ecosystem.
 
-## Features
+## 🌟 Overview
 
-🌍 **Multi-Role Platform**
-- **Farmers**: Register plantations, track carbon credits, manage submissions
-- **Businesses**: Browse verified plantations, purchase carbon credits, view purchase history
-- **Admins**: Review pending plantations, verify using NDVI data, manage credit issuance
+CarbonCredit is a full-stack web application built with Next.js that enables:
+- **Farmers** to register and monetize reforestation projects
+- **Businesses** to purchase verified carbon credits for net-zero goals
+- **Administrators** to verify plantations using NDVI satellite data
 
-🗺️ **Interactive Map**
-- Leaflet-based map visualization of all plantations
-- Real-time location tracking and plantation markers
-- Clustered markers for better UX at different zoom levels
+The platform uses Normalized Difference Vegetation Index (NDVI) from satellite imagery to ensure transparent, verifiable carbon sequestration measurements.
 
-📊 **NDVI Verification**
-- Comprehensive guide on Normalized Difference Vegetation Index
-- Satellite-based vegetation health measurements
-- Automated credit calculation based on NDVI scores
+## ✨ Key Features
 
-🔐 **Authentication**
-- User registration and login with role-based access
-- JWT-based session management
-- Secure API endpoints with authentication headers
+### 🔐 Multi-Role Authentication
+- Role-based access control (Farmer, Business, Admin)
+- Secure JWT-based session management
+- Protected API endpoints and dashboard routes
 
-💾 **Full-Stack Data Management**
-- API routes for farmers, businesses, and admin operations
-- In-memory database with persistent data structures
-- Real-time statistics and dashboard updates
+### 🗺️ Interactive Mapping
+- Real-time plantation visualization with Leaflet
+- Location-based search and filtering
+- Color-coded status indicators (pending, verified, rejected)
+- Detailed plantation information popups
 
-## Tech Stack
+### 📊 NDVI Verification System
+- Satellite-based vegetation health monitoring
+- Automated carbon credit calculations
+- Educational NDVI guide for users
+- Real-time verification status updates
 
-- **Framework**: Next.js 14 (App Router)
-- **Styling**: Tailwind CSS 3
-- **Maps**: Leaflet + React Leaflet
-- **State Management**: React Hooks
-- **API**: Next.js API Routes
+### 💼 Business Dashboard
+- Browse available carbon credits
+- Secure purchase transactions
+- Transaction history and receipts
+- Portfolio management
+
+### 🌱 Farmer Dashboard
+- Register new plantation plots
+- Upload documentation and coordinates
+- Track verification progress
+- Monitor earned carbon credits
+
+### 🛡️ Admin Panel
+- Review pending plantation submissions
+- NDVI-based verification workflow
+- Credit issuance and management
+- Platform statistics and analytics
+
+## 🛠️ Technology Stack
+
+- **Frontend**: Next.js 14 (App Router), React, Tailwind CSS
+- **Backend**: Next.js API Routes
+- **Database**: In-memory storage (production-ready for PostgreSQL/MongoDB)
+- **Maps**: Leaflet with React Leaflet
+- **Authentication**: Custom JWT implementation
+- **Styling**: Tailwind CSS with custom design system
 - **Package Manager**: pnpm
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
-- pnpm (or npm/yarn)
+- Node.js 18.0 or higher
+- pnpm package manager
 
 ### Installation
 
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd CarbonCredit
+```
+
+2. Navigate to the Next.js app directory:
 ```bash
 cd nextjs-app
+```
+
+3. Install dependencies:
+```bash
 pnpm install
 ```
 
-### Development Server
-
+4. Start the development server:
 ```bash
 pnpm dev
 ```
 
-Open [https://carbon-credit-opal.vercel.app/](https://carbon-credit-opal.vercel.app/) in your browser.
-
-The app will auto-reload as you edit files.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ### Production Build
 
@@ -68,157 +96,262 @@ pnpm build
 pnpm start
 ```
 
-## Project Structure
+## 📁 Project Structure
 
 ```
-nextjs-app/
-├── app/
-│   ├── layout.js              # Root layout with navigation
-│   ├── page.js                # Home page with hero section
-│   ├── globals.css            # Tailwind configuration & global styles
-│   ├── login/page.js          # User login page
-│   ├── register/page.js       # User registration page
-│   ├── map/page.js            # Interactive plantation map
-│   ├── ndvi-guide/page.js     # NDVI education guide
-│   ├── farmer/page.js         # Farmer dashboard
-│   ├── business/page.js       # Business dashboard
-│   ├── contact/page.js        # Contact page
-│   ├── documentation/page.js  # Documentation page
-│   ├── privacy/page.js        # Privacy policy
-│   ├── dashboard/
-│   │   ├── farmer/page.js     # Farmer dashboard (route)
-│   │   ├── business/page.js   # Business dashboard (route)
-│   │   └── admin/page.js      # Admin dashboard (route)
-│   └── api/
-│       ├── auth/
-│       │   ├── register.js    # Register endpoint
-│       │   ├── login.js       # Login endpoint
-│       │   └── logout.js      # Logout endpoint
-│       ├── farmer/
-│       │   ├── plantations.js # GET/POST plantations
-│       │   └── credits.js     # GET farmer credits
-│       ├── business/
-│       │   ├── plantations.js # GET verified plantations
-│       │   └── purchases.js   # GET/POST purchases
-│       └── admin/
-│           └── verify.js      # POST verify plantation
-├── components/
-│   └── MapComponent.js        # Leaflet map wrapper
-├── lib/
-│   └── db.js                  # In-memory database
-├── public/                    # Static files
-├── tailwind.config.js         # Tailwind theme config
-├── postcss.config.js          # PostCSS configuration
-├── next.config.js             # Next.js configuration
-└── package.json               # Dependencies
-
+CarbonCredit/
+├── README.md
+├── Sync.txt
+├── nextjs-app/
+│   ├── app/
+│   │   ├── globals.css
+│   │   ├── layout.js
+│   │   ├── page.js
+│   │   ├── admin/
+│   │   │   └── page.js
+│   │   ├── api/
+│   │   │   ├── admin/
+│   │   │   │   ├── plantations/
+│   │   │   │   │   └── route.js
+│   │   │   │   └── verify/
+│   │   │   │       └── route.js
+│   │   │   ├── auth/
+│   │   │   │   ├── confirm/
+│   │   │   │   │   └── route.js
+│   │   │   │   ├── login/
+│   │   │   │   │   └── route.js
+│   │   │   │   ├── logout/
+│   │   │   │   │   └── route.js
+│   │   │   │   ├── register/
+│   │   │   │   │   └── route.js
+│   │   │   │   └── resend/
+│   │   │   │       └── route.js
+│   │   │   ├── business/
+│   │   │   │   ├── plantations/
+│   │   │   │   │   └── route.js
+│   │   │   │   └── purchases/
+│   │   │   │       └── route.js
+│   │   │   ├── farmer/
+│   │   │   │   ├── credits/
+│   │   │   │   │   └── route.js
+│   │   │   │   ├── plantations/
+│   │   │   │   │   └── route.js
+│   │   │   │   └── upload/
+│   │   │   │       └── route.js
+│   │   │   ├── geo/
+│   │   │   │   ├── nearby/
+│   │   │   │   │   └── route.js
+│   │   │   │   └── search/
+│   │   │   │       └── route.js
+│   │   │   └── stats/
+│   │   │       └── route.js
+│   │   ├── auth/
+│   │   │   ├── confirm/
+│   │   │   │   ├── ConfirmClient.js
+│   │   │   │   └── page.js
+│   │   │   └── login/
+│   │   │       └── page.js
+│   │   ├── business/
+│   │   │   └── page.js
+│   │   ├── dashboard/
+│   │   │   ├── admin/
+│   │   │   │   └── page.js
+│   │   │   ├── business/
+│   │   │   │   └── page.js
+│   │   │   └── farmer/
+│   │   │       └── page.js
+│   │   ├── farmer/
+│   │   │   └── page.js
+│   │   ├── login/
+│   │   │   └── page.js
+│   │   ├── map/
+│   │   │   └── page.js
+│   │   ├── ndvi-guide/
+│   │   │   └── page.js
+│   │   └── register/
+│   │       └── page.js
+│   ├── components/
+│   │   └── MapComponent.js
+│   ├── lib/
+│   │   ├── auth.js
+│   │   └── db.js
+│   ├── public/
+│   ├── jsconfig.json
+│   ├── package.json
+│   ├── pnpm-lock.yaml
+│   ├── postcss.config.js
+│   └── tailwind.config.js
 ```
 
-## Role-Based Routes
+## 🔗 API Reference
 
-### Farmers
-- `/farmer` - Farmer dashboard
-- `/dashboard/farmer` - Alternative dashboard view
-- Add/manage plantations
-- Track carbon credits
-- View verification status
+### Authentication Endpoints
 
-### Businesses
-- `/business` - Business dashboard
-- `/dashboard/business` - Alternative dashboard view
-- Browse verified plantations
-- Purchase carbon credits
-- View transaction history
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register new user account |
+| POST | `/api/auth/login` | User authentication |
+| POST | `/api/auth/logout` | End user session |
+| POST | `/api/auth/confirm` | Confirm email registration |
+| POST | `/api/auth/resend` | Resend confirmation email |
 
-### Admins
-- `/dashboard/admin` - Admin verification panel
-- Review pending plantations
-- Verify/reject submissions
-- Calculate carbon credits
+### Farmer Endpoints
 
-## API Endpoints
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/farmer/plantations` | List user's plantations |
+| POST | `/api/farmer/plantations` | Register new plantation |
+| GET | `/api/farmer/credits` | Get total earned credits |
+| POST | `/api/farmer/upload` | Upload plantation documents |
 
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
+### Business Endpoints
 
-### Farmer Operations
-- `GET /api/farmer/plantations` - List user plantations
-- `POST /api/farmer/plantations` - Add new plantation
-- `GET /api/farmer/credits` - Get total credits earned
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/business/plantations` | Browse verified plantations |
+| POST | `/api/business/purchases` | Purchase carbon credits |
+| GET | `/api/business/purchases` | View purchase history |
 
-### Business Operations
-- `GET /api/business/plantations` - List verified plantations
-- `POST /api/business/purchases` - Purchase credits
-- `GET /api/business/purchases` - Purchase history
+### Admin Endpoints
 
-### Admin Operations
-- `POST /api/admin/verify/:id/:status` - Verify/reject plantation
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/plantations` | List all plantations for review |
+| POST | `/api/admin/verify` | Verify or reject plantation |
 
-### General
-- `GET /api/stats` - Platform statistics
+### General Endpoints
 
-## Features in Detail
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/stats` | Platform statistics |
+| GET | `/api/geo/nearby` | Find nearby plantations |
+| GET | `/api/geo/search` | Search plantations by location |
 
-### Map Visualization
-- Interactive Leaflet map with plantation markers
-- Zoom controls and location search
-- Marker popups with plantation details
-- Color-coded status indicators
+## 🎯 User Roles & Workflows
 
-### NDVI Integration
-- Educational guide on satellite vegetation analysis
-- Formula: NDVI = (NIR - RED) / (NIR + RED)
-- Real-time calculation of carbon credits
-- Health-based verification system
+### Farmer Workflow
+1. Register account with farmer role
+2. Add plantation details (coordinates, area, tree types)
+3. Upload supporting documentation
+4. Wait for admin verification via NDVI analysis
+5. Receive carbon credits once verified
+6. Monitor credit balance and transaction history
 
-### Authentication
-- Role-based login (farmer/business/admin)
-- Session persistence with localStorage
-- Protected routes and API endpoints
-- Secure header-based authentication
+### Business Workflow
+1. Register account with business role
+2. Browse verified plantations on marketplace
+3. Purchase carbon credits from available listings
+4. View transaction receipts and impact reports
+5. Track portfolio of purchased credits
 
-### Dashboards
-- Real-time statistics and metrics
-- Interactive forms for data submission
-- Status tracking and history views
-- Responsive design for all devices
+### Admin Workflow
+1. Register account with admin role
+2. Review pending plantation submissions
+3. Analyze NDVI data for verification
+4. Approve/reject plantations with feedback
+5. Monitor platform statistics and user activity
 
-## Data Storage
+## 🌍 NDVI Verification Process
 
-The app uses an in-memory database (`lib/db.js`) for demonstration. For production:
-- Replace with PostgreSQL or MongoDB
-- Add proper authentication middleware
-- Implement proper error handling
-- Add data validation and sanitization
+The platform uses satellite-derived NDVI measurements to verify carbon sequestration:
 
-## Environment Variables
+**NDVI Formula**: `(NIR - RED) / (NIR + RED)`
 
-Create a `.env.local` file (optional for development):
+- **NIR**: Near-Infrared light reflection
+- **RED**: Visible red light reflection
+- **Range**: -1 to +1 (healthy vegetation = higher values)
+
+Credits are calculated based on:
+- Plantation area (hectares)
+- NDVI health score
+- Tree species carbon sequestration rates
+- Time-based growth factors
+
+## 🔧 Configuration
+
+### Environment Variables
+Create `.env.local` in the `nextjs-app` directory:
 
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:3000
+# Database Configuration (for production)
+DATABASE_URL=postgresql://user:password@localhost:5432/carboncredit
+
+# Authentication
+JWT_SECRET=your-secret-key-here
+
+# External APIs (if needed)
+SATELLITE_API_KEY=your-api-key
 ```
 
-## Browser Support
+### Database Setup
+The app currently uses in-memory storage. For production:
 
-- Chrome/Edge (latest)
-- Firefox (latest)
-- Safari (latest)
-- Mobile browsers
+1. Set up PostgreSQL or MongoDB
+2. Update `lib/db.js` with database connections
+3. Run database migrations
+4. Configure connection pooling
 
-## Contributing
+## 🧪 Testing
 
-1. Create a feature branch
-2. Make your changes
-3. Test thoroughly
-4. Submit a pull request
+```bash
+# Run tests
+pnpm test
 
-## License
+# Run tests with coverage
+pnpm test -- --coverage
+```
 
-MIT License - feel free to use this project
+## 🚀 Deployment
 
-## Support
+### Vercel (Recommended)
+1. Connect GitHub repository to Vercel
+2. Configure environment variables
+3. Deploy automatically on push
 
-For issues or questions, open an issue on the repository.
+### Docker
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make your changes and test thoroughly
+4. Commit with descriptive messages
+5. Push to your fork
+6. Submit a pull request
+
+### Development Guidelines
+- Follow Next.js best practices
+- Use TypeScript for new components
+- Maintain consistent code style
+- Add tests for new features
+- Update documentation
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-repo/discussions)
+- **Email**: support@carboncredit.com
+
+## 🙏 Acknowledgments
+
+- Satellite data providers for NDVI measurements
+- Open source community for mapping libraries
+- Environmental organizations for carbon credit standards
+
+---
+
+Built with ❤️ for a sustainable future
