@@ -37,16 +37,59 @@ export async function POST(request) {
     }
 
     const allowedTypes = new Set(['land_document', 'farm_image']);
-    if (!allowedTypes.has(String(documentType))) {
+    const normalizedType = String(documentType);
+    if (!allowedTypes.has(normalizedType)) {
       return Response.json({ error: 'Invalid document type' }, { status: 400 });
     }
 
+    const allowedMimeByType = {
+      land_document: new Set([
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+      ]),
+      farm_image: new Set(['image/jpeg', 'image/png', 'image/webp']),
+    };
+
+    const mimeType = file.type || 'application/octet-stream';
+    if (!allowedMimeByType[normalizedType].has(mimeType)) {
+      return Response.json(
+        { error: `Invalid file type for ${normalizedType}. Received: ${mimeType}` },
+        { status: 400 }
+      );
+    }
+
     const extension = path.extname(file.name) || '';
-    const safeType = String(documentType).replace(/[^a-z_]/gi, '').toLowerCase();
+    const safeType = normalizedType.replace(/[^a-z_]/gi, '').toLowerCase();
     const safeName = path.basename(file.name, extension).replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 80) || 'upload';
     const uniquePart = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
     const storagePath = `${plantationId}/${safeType}/${uniquePart}-${safeName}${extension}`;
     const bucket = process.env.SUPABASE_STORAGE_BUCKET || 'plantation-documents';
+
+    const { data: existingBucket, error: bucketError } = await supabaseServer.storage.getBucket(bucket);
+    if (bucketError && !String(bucketError.message || '').toLowerCase().includes('not found')) {
+      return Response.json({ error: `Storage bucket check failed: ${bucketError.message}` }, { status: 500 });
+    }
+
+    if (!existingBucket) {
+      const { error: createBucketError } = await supabaseServer.storage.createBucket(bucket, {
+        public: true,
+        fileSizeLimit: `${Math.floor(maxFileSize / (1024 * 1024))}MB`,
+        allowedMimeTypes: Array.from(
+          new Set([...allowedMimeByType.land_document, ...allowedMimeByType.farm_image])
+        ),
+      });
+
+      if (createBucketError) {
+        return Response.json(
+          { error: `Storage bucket creation failed: ${createBucketError.message}` },
+          { status: 500 }
+        );
+      }
+    }
 
     const { error: uploadError } = await supabaseServer.storage
       .from(bucket)
