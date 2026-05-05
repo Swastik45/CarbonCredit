@@ -27,6 +27,8 @@ export default function FarmerDashboard() {
   const [username, setUsername] = useState('');
   const [expandedPlantation, setExpandedPlantation] = useState(null);
   const [uploadingPlantationId, setUploadingPlantationId] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   const [formData, setFormData] = useState({
     latitude: '',
     longitude: '',
@@ -91,11 +93,23 @@ export default function FarmerDashboard() {
         fetch('/api/farmer/credits', { headers })
       ]);
 
+      if (!plantRes.ok || !creditsRes.ok) {
+        const plantError = await plantRes.json().catch(() => ({}));
+        const creditsError = await creditsRes.json().catch(() => ({}));
+        const message = plantError.error || creditsError.error || 'Failed to load dashboard data';
+        setError(message);
+        if (plantRes.status === 401 || creditsRes.status === 401) {
+          handleLogout();
+        }
+        return;
+      }
+
       const plantData = await plantRes.json();
       const creditsData = await creditsRes.json();
       
-      setPlantations(plantData);
-      setCredits(creditsData.totalCredits);
+      setPlantations(Array.isArray(plantData) ? plantData : []);
+      setCredits(Number(creditsData.totalCredits || 0));
+      setError('');
     } catch (err) {
       setError('Failed to load dashboard data');
     } finally {
@@ -140,6 +154,8 @@ export default function FarmerDashboard() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
+    setSuccessMessage('');
     try {
       const token = localStorage.getItem('accessToken');
       const res = await fetch('/api/farmer/plantations', {
@@ -152,12 +168,19 @@ export default function FarmerDashboard() {
       });
 
       if (res.ok) {
+        await res.json();
         setFormData({ latitude: '', longitude: '', treeType: '', area: '', ndvi: '' });
         setError('');
-        loadData();
+        await loadData();
+        setSuccessMessage('Plantation submitted for verification.');
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        setError(errorData.error || 'Failed to add plantation');
       }
     } catch (err) {
       setError('Failed to add plantation');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -173,6 +196,15 @@ export default function FarmerDashboard() {
 
   const handleUploadDocument = async (plantationId, file, documentType) => {
     if (!file) return;
+    setSuccessMessage('');
+
+    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxFileSize) {
+      const msg = 'File size exceeds 10MB limit';
+      setError(msg);
+      alert(msg);
+      return;
+    }
 
     setUploadingPlantationId(plantationId);
     try {
@@ -191,18 +223,21 @@ export default function FarmerDashboard() {
       });
 
       if (res.ok) {
-        const data = await res.json();
-        // Update the plantation in the local state
-        setPlantations(prev =>
-          prev.map(p => (p.id === plantationId ? data.plantation : p))
-        );
-        alert(`${documentType === 'land_document' ? 'Land Document' : 'Farm Image'} uploaded successfully!`);
+        await res.json();
+        await loadData();
+        const successText = `${documentType === 'land_document' ? 'Land document' : 'Farm image'} uploaded successfully.`;
+        setSuccessMessage(successText);
+        alert(successText);
+        setError('');
       } else {
         const errorData = await res.json().catch(() => ({}));
-        alert(errorData.error || 'Upload failed. Please try again.');
+        const message = errorData.error || 'Upload failed. Please try again.';
+        setError(message);
+        alert(message);
       }
     } catch (err) {
       console.error('Upload error:', err);
+      setError('Upload failed. Please try again.');
       alert('Upload failed. Please try again.');
     } finally {
       setUploadingPlantationId(null);
@@ -318,8 +353,12 @@ export default function FarmerDashboard() {
                   </div>
                 </div>
 
-                <button type="submit" className="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98]">
-                  Submit for Verification
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Submitting...' : 'Submit for Verification'}
                 </button>
               </form>
             </div>
@@ -376,6 +415,7 @@ export default function FarmerDashboard() {
               </div>
 
               {error && <div className="p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl text-sm font-medium">{error}</div>}
+              {successMessage && <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl text-sm font-medium">{successMessage}</div>}
 
               <div className="grid sm:grid-cols-2 gap-4">
                 {filteredPlantations.length === 0 ? (

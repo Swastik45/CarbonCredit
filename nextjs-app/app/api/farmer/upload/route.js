@@ -14,11 +14,20 @@ export async function POST(request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file');
-    const plantationId = formData.get('plantationId');
+    const plantationIdRaw = formData.get('plantationId');
     const documentType = formData.get('type'); // 'land_document', 'farm_image', etc.
 
-    if (!file || !plantationId || !documentType) {
+    if (!file || !plantationIdRaw || !documentType) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const plantationId = Number(plantationIdRaw);
+    if (!Number.isFinite(plantationId)) {
+      return Response.json({ error: 'Invalid plantation id' }, { status: 400 });
+    }
+
+    if (typeof file.arrayBuffer !== 'function') {
+      return Response.json({ error: 'Invalid file payload' }, { status: 400 });
     }
 
     // Basic file guard to avoid oversized payloads in API/database
@@ -83,7 +92,10 @@ export async function POST(request) {
         ),
       });
 
-      if (createBucketError) {
+      if (
+        createBucketError &&
+        !String(createBucketError.message || '').toLowerCase().includes('already exists')
+      ) {
         return Response.json(
           { error: `Storage bucket creation failed: ${createBucketError.message}` },
           { status: 500 }
@@ -112,10 +124,10 @@ export async function POST(request) {
 
     // Update plantation with persisted file URL
     const updateData = {};
-    if (documentType === 'land_document') {
+    if (normalizedType === 'land_document') {
       updateData.land_document = storedFileUrl;
       updateData.land_document_name = file.name;
-    } else if (documentType === 'farm_image') {
+    } else if (normalizedType === 'farm_image') {
       updateData.farm_image = storedFileUrl;
       updateData.farm_image_name = file.name;
     }

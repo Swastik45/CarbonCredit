@@ -20,24 +20,51 @@ export async function POST(request) {
   const auth = await requireAuth(request.headers, 'farmer');
   if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
 
-  const body = await request.json();
-  const { latitude, longitude, treeType, area, ndvi } = body;
+  try {
+    const body = await request.json();
+    const { latitude, longitude, treeType, area, ndvi } = body;
 
-  if (!latitude || !longitude || !treeType || !area) {
-    return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    if (
+      latitude === undefined ||
+      longitude === undefined ||
+      area === undefined ||
+      !String(treeType || '').trim()
+    ) {
+      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const latitudeNum = Number(latitude);
+    const longitudeNum = Number(longitude);
+    const areaNum = Number(area);
+    const ndviNum = ndvi === undefined || ndvi === '' ? null : Number(ndvi);
+
+    if (!Number.isFinite(latitudeNum) || !Number.isFinite(longitudeNum) || !Number.isFinite(areaNum)) {
+      return Response.json({ error: 'Latitude, longitude and area must be valid numbers' }, { status: 400 });
+    }
+
+    if (areaNum <= 0) {
+      return Response.json({ error: 'Area must be greater than 0' }, { status: 400 });
+    }
+
+    if (ndviNum !== null && !Number.isFinite(ndviNum)) {
+      return Response.json({ error: 'NDVI must be a valid number' }, { status: 400 });
+    }
+
+    const plantation = await db.plantations.create({
+      farmer_id: auth.userId,
+      farmer_username: auth.username,
+      latitude: latitudeNum,
+      longitude: longitudeNum,
+      tree_type: String(treeType).trim(),
+      area: areaNum,
+      ndvi: ndviNum !== null ? ndviNum : Math.random() * 0.3 + 0.4,
+      status: 'pending',
+      credits: 0,
+    });
+
+    return Response.json({ message: 'Plantation added', plantation }, { status: 201 });
+  } catch (error) {
+    console.error('Create plantation error:', error);
+    return Response.json({ error: 'Failed to create plantation' }, { status: 500 });
   }
-
-  const plantation = await db.plantations.create({
-    farmer_id: auth.userId,
-    farmer_username: auth.username, // Store farmer username
-    latitude: parseFloat(latitude),
-    longitude: parseFloat(longitude),
-    tree_type: treeType,
-    area: parseFloat(area),
-    ndvi: ndvi ? parseFloat(ndvi) : Math.random() * 0.3 + 0.4,
-    status: 'pending',
-    credits: 0,
-  });
-
-  return Response.json({ message: 'Plantation added', plantation }, { status: 201 });
 }
