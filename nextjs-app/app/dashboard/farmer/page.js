@@ -198,7 +198,8 @@ export default function FarmerDashboard() {
         );
         alert(`${documentType === 'land_document' ? 'Land Document' : 'Farm Image'} uploaded successfully!`);
       } else {
-        alert('Upload failed. Please try again.');
+        const errorData = await res.json().catch(() => ({}));
+        alert(errorData.error || 'Upload failed. Please try again.');
       }
     } catch (err) {
       console.error('Upload error:', err);
