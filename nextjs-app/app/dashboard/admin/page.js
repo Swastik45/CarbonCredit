@@ -7,6 +7,8 @@ import Link from 'next/link';
 export default function AdminDashboard() {
   const [plantations, setPlantations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -23,13 +25,18 @@ export default function AdminDashboard() {
 
   const loadData = async () => {
     try {
+      setError('');
       const token = localStorage.getItem('accessToken');
       const headers = { Authorization: `Bearer ${token}` };
       const res = await fetch('/api/admin/plantations', { headers });
-      const data = await res.json();
-      setPlantations(data);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || 'Failed to load plantations');
+        return;
+      }
+      setPlantations(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Failed to load data');
+      setError('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -37,6 +44,8 @@ export default function AdminDashboard() {
 
   const handleVerify = async (plantationId, status) => {
     try {
+      setError('');
+      setActionMessage('');
       const token = localStorage.getItem('accessToken');
       const res = await fetch('/api/admin/verify', {
         method: 'POST',
@@ -47,9 +56,16 @@ export default function AdminDashboard() {
         body: JSON.stringify({ plantationId, status }),
       });
 
-      if (res.ok) loadData();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || 'Verification failed');
+        return;
+      }
+
+      setActionMessage(data.message || `Plantation ${status}`);
+      await loadData();
     } catch (err) {
-      console.error('Verification failed');
+      setError('Verification failed');
     }
   };
 
@@ -99,6 +115,16 @@ export default function AdminDashboard() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-8 py-10">
+        {error && (
+          <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-100 text-rose-600 text-sm font-semibold">
+            {error}
+          </div>
+        )}
+        {actionMessage && (
+          <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-semibold">
+            {actionMessage}
+          </div>
+        )}
         
         {/* ── Dashboard Stats ── */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">

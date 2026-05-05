@@ -25,8 +25,6 @@ export default function FarmerDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [username, setUsername] = useState('');
-  const [expandedPlantation, setExpandedPlantation] = useState(null);
-  const [uploadingPlantationId, setUploadingPlantationId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [formData, setFormData] = useState({
@@ -194,56 +192,6 @@ export default function FarmerDashboard() {
     router.push('/');
   };
 
-  const handleUploadDocument = async (plantationId, file, documentType) => {
-    if (!file) return;
-    setSuccessMessage('');
-
-    const maxFileSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxFileSize) {
-      const msg = 'File size exceeds 10MB limit';
-      setError(msg);
-      alert(msg);
-      return;
-    }
-
-    setUploadingPlantationId(plantationId);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('plantationId', plantationId);
-      formData.append('type', documentType);
-
-      const token = localStorage.getItem('accessToken');
-      const res = await fetch('/api/farmer/upload', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (res.ok) {
-        await res.json();
-        await loadData();
-        const successText = `${documentType === 'land_document' ? 'Land document' : 'Farm image'} uploaded successfully.`;
-        setSuccessMessage(successText);
-        alert(successText);
-        setError('');
-      } else {
-        const errorData = await res.json().catch(() => ({}));
-        const message = errorData.error || 'Upload failed. Please try again.';
-        setError(message);
-        alert(message);
-      }
-    } catch (err) {
-      console.error('Upload error:', err);
-      setError('Upload failed. Please try again.');
-      alert('Upload failed. Please try again.');
-    } finally {
-      setUploadingPlantationId(null);
-    }
-  };
-
   const verifiedCount = plantations.filter(p => p.status === 'verified').length;
   const pendingCount = plantations.filter(p => p.status === 'pending').length;
   const totalArea = plantations.reduce((sum, p) => sum + (p.area || 0), 0);
@@ -345,11 +293,11 @@ export default function FarmerDashboard() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Area (ha)</label>
-                    <input name="area" type="number" step="0.01" value={formData.area} onChange={handleChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
+                    <input name="area" type="number" step="0.01" min="0.01" value={formData.area} onChange={handleChange} required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Initial NDVI</label>
-                    <input name="ndvi" type="number" step="0.001" value={formData.ndvi} onChange={handleChange} placeholder="0.0 - 1.0" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">NDVI (0-1)</label>
+                    <input name="ndvi" type="number" step="0.001" min="0" max="1" value={formData.ndvi} onChange={handleChange} placeholder="0.0 - 1.0" required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none transition-all" />
                   </div>
                 </div>
 
@@ -462,92 +410,12 @@ export default function FarmerDashboard() {
                           </div>
                         </div>
 
-                        {/* Document Status */}
-                        <div className="flex gap-2">
-                          <div className="flex-1 text-center py-2 bg-blue-50 rounded-lg">
-                            <p className="text-xs text-blue-600 font-bold">
-                              {p.land_document ? '✓ Land Doc' : '○ Land Doc'}
-                            </p>
-                          </div>
-                          <div className="flex-1 text-center py-2 bg-purple-50 rounded-lg">
-                            <p className="text-xs text-purple-600 font-bold">
-                              {p.farm_image ? '✓ Farm Image' : '○ Farm Image'}
-                            </p>
-                          </div>
+                        <div className="mt-4 rounded-lg bg-slate-50 border border-slate-100 px-3 py-2">
+                          <p className="text-xs text-slate-500 font-medium">
+                            Basic mode enabled: plantation submission and verification tracking only.
+                          </p>
                         </div>
                       </div>
-
-                      {/* Expandable Upload Section */}
-                      <button
-                        onClick={() => setExpandedPlantation(expandedPlantation === p.id ? null : p.id)}
-                        className="w-full px-6 py-3 border-t border-slate-100 bg-slate-50 hover:bg-slate-100 text-slate-600 text-sm font-semibold transition-colors flex items-center justify-center gap-2"
-                      >
-                        {expandedPlantation === p.id ? '△' : '▽'} Upload Documents
-                      </button>
-
-                      {expandedPlantation === p.id && (
-                        <div className="px-6 py-4 bg-gradient-to-b from-slate-50 to-white border-t border-slate-100 space-y-4">
-                          {/* Land Document Upload */}
-                          <div>
-                            <p className="text-xs font-bold text-slate-600 mb-2 uppercase">📋 Land Document</p>
-                            <label className="block relative cursor-pointer">
-                              <input
-                                type="file"
-                                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                                disabled={uploadingPlantationId === p.id}
-                                onChange={(e) => {
-                                  if (e.target.files?.[0]) {
-                                    handleUploadDocument(p.id, e.target.files[0], 'land_document');
-                                  }
-                                }}
-                                className="sr-only"
-                              />
-                              <div className={`
-                                border-2 border-dashed rounded-lg p-3 text-center
-                                ${uploadingPlantationId === p.id ? 'border-slate-300 bg-slate-100' : 'border-blue-300 bg-blue-50 hover:bg-blue-100'}
-                                transition-colors
-                              `}>
-                                <p className="text-xs text-slate-600 font-semibold">
-                                  {uploadingPlantationId === p.id ? '⏳ Uploading...' : '📤 Click to upload or drag'}
-                                </p>
-                                {p.land_document && !uploadingPlantationId && (
-                                  <p className="text-[11px] text-green-600 font-bold mt-1">✓ {p.land_document_name || 'Document uploaded'}</p>
-                                )}
-                              </div>
-                            </label>
-                          </div>
-
-                          {/* Farm Image Upload */}
-                          <div>
-                            <p className="text-xs font-bold text-slate-600 mb-2 uppercase">🖼️ Farm Image</p>
-                            <label className="block relative cursor-pointer">
-                              <input
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                disabled={uploadingPlantationId === p.id}
-                                onChange={(e) => {
-                                  if (e.target.files?.[0]) {
-                                    handleUploadDocument(p.id, e.target.files[0], 'farm_image');
-                                  }
-                                }}
-                                className="sr-only"
-                              />
-                              <div className={`
-                                border-2 border-dashed rounded-lg p-3 text-center
-                                ${uploadingPlantationId === p.id ? 'border-slate-300 bg-slate-100' : 'border-purple-300 bg-purple-50 hover:bg-purple-100'}
-                                transition-colors
-                              `}>
-                                <p className="text-xs text-slate-600 font-semibold">
-                                  {uploadingPlantationId === p.id ? '⏳ Uploading...' : '📤 Click to upload or drag'}
-                                </p>
-                                {p.farm_image && !uploadingPlantationId && (
-                                  <p className="text-[11px] text-green-600 font-bold mt-1">✓ {p.farm_image_name || 'Image uploaded'}</p>
-                                )}
-                              </div>
-                            </label>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ))
                 )}

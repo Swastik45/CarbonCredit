@@ -25,20 +25,7 @@ export async function requireAuth(headers, expectedType = null) {
     return { error: 'Unauthorized', status: 401 };
   }
 
-  // Special case: Admin token (hardcoded)
-  if (token.startsWith('admin-token-')) {
-    if (expectedType && expectedType !== 'admin') {
-      return { error: 'Forbidden', status: 403 };
-    }
-    return {
-      userId: 'admin-user',
-      userType: 'admin',
-      email: 'admin@system.local',
-      username: 'admin',
-    };
-  }
-
-  // Regular user: verify with Supabase
+  // Verify bearer token with Supabase for every role.
   const { data, error } = await supabaseServer.auth.getUser(token);
   if (error || !data?.user) {
     return { error: 'Unauthorized', status: 401 };

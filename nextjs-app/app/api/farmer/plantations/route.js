@@ -46,8 +46,12 @@ export async function POST(request) {
       return Response.json({ error: 'Area must be greater than 0' }, { status: 400 });
     }
 
-    if (ndviNum !== null && !Number.isFinite(ndviNum)) {
-      return Response.json({ error: 'NDVI must be a valid number' }, { status: 400 });
+    if (ndviNum === null || !Number.isFinite(ndviNum)) {
+      return Response.json({ error: 'NDVI is required and must be a valid number' }, { status: 400 });
+    }
+
+    if (ndviNum < 0 || ndviNum > 1) {
+      return Response.json({ error: 'NDVI must be between 0 and 1' }, { status: 400 });
     }
 
     const plantation = await db.plantations.create({
@@ -57,7 +61,7 @@ export async function POST(request) {
       longitude: longitudeNum,
       tree_type: String(treeType).trim(),
       area: areaNum,
-      ndvi: ndviNum !== null ? ndviNum : Math.random() * 0.3 + 0.4,
+      ndvi: ndviNum,
       status: 'pending',
       credits: 0,
     });
