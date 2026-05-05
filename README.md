@@ -1,4 +1,4 @@
-# CarbonCredit Marketplace
+# CarbonCredit
 
 A comprehensive platform for trading satellite-verified carbon credits, connecting farmers, businesses, and administrators in a transparent carbon market ecosystem.
 
