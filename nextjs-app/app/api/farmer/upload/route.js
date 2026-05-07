@@ -2,11 +2,6 @@ import { db, supabaseServer } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
 import path from 'path';
 
-/**
- * Upload farm document/image
- * Stores files in Supabase Storage and saves URL/path in database.
- */
-
 export async function POST(request) {
   const auth = await requireAuth(request.headers, 'farmer');
   if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
@@ -15,7 +10,7 @@ export async function POST(request) {
     const formData = await request.formData();
     const file = formData.get('file');
     const plantationIdRaw = formData.get('plantationId');
-    const documentType = formData.get('type'); // 'land_document', 'farm_image', etc.
+    const documentType = formData.get('type');
 
     if (!file || !plantationIdRaw || !documentType) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
@@ -30,8 +25,7 @@ export async function POST(request) {
       return Response.json({ error: 'Invalid file payload' }, { status: 400 });
     }
 
-    // Basic file guard to avoid oversized payloads in API/database
-    const maxFileSize = 10 * 1024 * 1024; // 10MB
+    const maxFileSize = 10 * 1024 * 1024;
     if (file.size > maxFileSize) {
       return Response.json({ error: 'File size exceeds 10MB limit' }, { status: 400 });
     }
@@ -39,43 +33,40 @@ export async function POST(request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Get plantation to verify ownership
     const plantation = await db.plantations.findById(plantationId);
     if (!plantation || plantation.farmer_id !== auth.userId) {
       return Response.json({ error: 'Plantation not found or access denied' }, { status: 403 });
     }
 
-    const allowedTypes = new Set(['land_document', 'farm_image']);
+    // REMOVED: farm_image — only land_document is used by the dashboard
+    const allowedTypes = new Set(['land_document']);
     const normalizedType = String(documentType);
     if (!allowedTypes.has(normalizedType)) {
       return Response.json({ error: 'Invalid document type' }, { status: 400 });
     }
 
-    const allowedMimeByType = {
-      land_document: new Set([
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'image/jpeg',
-        'image/png',
-        'image/webp',
-      ]),
-      farm_image: new Set(['image/jpeg', 'image/png', 'image/webp']),
-    };
+    // REMOVED: farm_image mime types — now a single flat set
+    const allowedMimeTypes = new Set([
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+    ]);
 
     const mimeType = file.type || 'application/octet-stream';
-    if (!allowedMimeByType[normalizedType].has(mimeType)) {
+    if (!allowedMimeTypes.has(mimeType)) {
       return Response.json(
-        { error: `Invalid file type for ${normalizedType}. Received: ${mimeType}` },
+        { error: `Invalid file type for land_document. Received: ${mimeType}` },
         { status: 400 }
       );
     }
 
     const extension = path.extname(file.name) || '';
-    const safeType = normalizedType.replace(/[^a-z_]/gi, '').toLowerCase();
     const safeName = path.basename(file.name, extension).replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 80) || 'upload';
     const uniquePart = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    const storagePath = `${plantationId}/${safeType}/${uniquePart}-${safeName}${extension}`;
+    const storagePath = `${plantationId}/land_document/${uniquePart}-${safeName}${extension}`;
     const bucket = process.env.SUPABASE_STORAGE_BUCKET || 'plantation-documents';
 
     const { data: existingBucket, error: bucketError } = await supabaseServer.storage.getBucket(bucket);
@@ -87,9 +78,7 @@ export async function POST(request) {
       const { error: createBucketError } = await supabaseServer.storage.createBucket(bucket, {
         public: true,
         fileSizeLimit: `${Math.floor(maxFileSize / (1024 * 1024))}MB`,
-        allowedMimeTypes: Array.from(
-          new Set([...allowedMimeByType.land_document, ...allowedMimeByType.farm_image])
-        ),
+        allowedMimeTypes: Array.from(allowedMimeTypes), // SIMPLIFIED: single set now
       });
 
       if (
@@ -106,38 +95,28 @@ export async function POST(request) {
     const { error: uploadError } = await supabaseServer.storage
       .from(bucket)
       .upload(storagePath, buffer, {
-        contentType: file.type || 'application/octet-stream',
+        contentType: mimeType,
         upsert: true,
       });
 
     if (uploadError) {
-      return Response.json(
-        {
-          error: `Storage upload failed: ${uploadError.message}`,
-        },
-        { status: 500 }
-      );
+      return Response.json({ error: `Storage upload failed: ${uploadError.message}` }, { status: 500 });
     }
 
     const { data: publicUrlData } = supabaseServer.storage.from(bucket).getPublicUrl(storagePath);
     const storedFileUrl = publicUrlData?.publicUrl || storagePath;
 
-    // Update plantation with persisted file URL
-    const updateData = {};
-    if (normalizedType === 'land_document') {
-      updateData.land_document = storedFileUrl;
-      updateData.land_document_name = file.name;
-    } else if (normalizedType === 'farm_image') {
-      updateData.farm_image = storedFileUrl;
-      updateData.farm_image_name = file.name;
-    }
-
-    const updatedPlantation = await db.plantations.update(plantationId, updateData);
+    // REMOVED: farm_image branch — only land_document update remains
+    const updatedPlantation = await db.plantations.update(plantationId, {
+      land_document: storedFileUrl,
+      land_document_name: file.name,
+    });
 
     return Response.json({
       message: 'Document uploaded successfully',
       plantation: updatedPlantation,
     }, { status: 200 });
+
   } catch (error) {
     console.error('Upload error:', error);
     return Response.json({ error: 'Upload failed' }, { status: 500 });
