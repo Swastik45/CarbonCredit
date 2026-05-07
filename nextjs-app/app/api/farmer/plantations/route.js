@@ -6,13 +6,12 @@ export async function GET(request) {
   if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
 
   const plantations = await db.plantations.findByFarmerId(auth.userId);
-  
-  // Add farmer username to each plantation
-  const plantationsWithUsername = plantations.map(p => ({
+
+  const plantationsWithUsername = plantations.map((p) => ({
     ...p,
     farmer_username: auth.username,
   }));
-  
+
   return Response.json(plantationsWithUsername);
 }
 
@@ -24,46 +23,63 @@ export async function POST(request) {
     const body = await request.json();
     const { latitude, longitude, treeType, area, ndvi } = body;
 
+    // ── Presence check ──────────────────────────────────────────────
     if (
       latitude === undefined ||
       longitude === undefined ||
       area === undefined ||
-      !String(treeType || '').trim()
-    ) {
+      ndvi === undefined ||          // FIX 1: ndvi was never checked for presence here,
+      !String(treeType || '').trim() //         so a missing ndvi fell through to the
+    ) {                              //         numeric checks and returned a confusing error
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const latitudeNum = Number(latitude);
+    // ── Coerce to numbers ────────────────────────────────────────────
+    const latitudeNum  = Number(latitude);
     const longitudeNum = Number(longitude);
-    const areaNum = Number(area);
-    const ndviNum = ndvi === undefined || ndvi === '' ? null : Number(ndvi);
+    const areaNum      = Number(area);
+    // FIX 2: empty-string ndvi now treated as missing (caught above),
+    //         so we can always coerce here without the null branch
+    const ndviNum      = Number(ndvi);
 
-    if (!Number.isFinite(latitudeNum) || !Number.isFinite(longitudeNum) || !Number.isFinite(areaNum)) {
-      return Response.json({ error: 'Latitude, longitude and area must be valid numbers' }, { status: 400 });
+    // ── Numeric validity ─────────────────────────────────────────────
+    if (
+      !Number.isFinite(latitudeNum) ||
+      !Number.isFinite(longitudeNum) ||
+      !Number.isFinite(areaNum) ||
+      !Number.isFinite(ndviNum)   // FIX 3: ndvi finitude was checked separately and
+    ) {                           //         only after the null-branch; unify it here
+      return Response.json(
+        { error: 'Latitude, longitude, area, and NDVI must be valid numbers' },
+        { status: 400 }
+      );
     }
 
+    // ── Range checks ─────────────────────────────────────────────────
+    if (latitudeNum < -90 || latitudeNum > 90) {
+      return Response.json({ error: 'Latitude must be between -90 and 90' }, { status: 400 });
+    }
+    if (longitudeNum < -180 || longitudeNum > 180) {
+      return Response.json({ error: 'Longitude must be between -180 and 180' }, { status: 400 });
+    }
     if (areaNum <= 0) {
       return Response.json({ error: 'Area must be greater than 0' }, { status: 400 });
     }
-
-    if (ndviNum === null || !Number.isFinite(ndviNum)) {
-      return Response.json({ error: 'NDVI is required and must be a valid number' }, { status: 400 });
-    }
-
     if (ndviNum < 0 || ndviNum > 1) {
       return Response.json({ error: 'NDVI must be between 0 and 1' }, { status: 400 });
     }
 
+    // ── Persist ──────────────────────────────────────────────────────
     const plantation = await db.plantations.create({
-      farmer_id: auth.userId,
-      farmer_username: auth.username,
-      latitude: latitudeNum,
-      longitude: longitudeNum,
-      tree_type: String(treeType).trim(),
-      area: areaNum,
-      ndvi: ndviNum,
-      status: 'pending',
-      credits: 0,
+      farmer_id:        auth.userId,
+      farmer_username:  auth.username,
+      latitude:         latitudeNum,
+      longitude:        longitudeNum,
+      tree_type:        String(treeType).trim(),
+      area:             areaNum,
+      ndvi:             ndviNum,
+      status:           'pending',
+      credits:          0,
     });
 
     return Response.json({ message: 'Plantation added', plantation }, { status: 201 });
