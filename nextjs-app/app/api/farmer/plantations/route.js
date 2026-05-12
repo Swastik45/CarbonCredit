@@ -6,13 +6,13 @@ export async function GET(request) {
   if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
 
   const plantations = await db.plantations.findByFarmerId(auth.userId);
-
-  const plantationsWithUsername = plantations.map((p) => ({
-    ...p,
-    farmer_username: auth.username,
-  }));
-
-  return Response.json(plantationsWithUsername);
+  // `farmer_username` may not exist in DB schema; attach it only in the API response.
+  return Response.json(
+    plantations.map((p) => ({
+      ...p,
+      farmer_username: auth.username,
+    }))
+  );
 }
 
 export async function POST(request) {
@@ -72,7 +72,6 @@ export async function POST(request) {
     // ── Persist ──────────────────────────────────────────────────────
     const plantation = await db.plantations.create({
       farmer_id:        auth.userId,
-      farmer_username:  auth.username,
       latitude:         latitudeNum,
       longitude:        longitudeNum,
       tree_type:        String(treeType).trim(),
