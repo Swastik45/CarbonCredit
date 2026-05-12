@@ -137,6 +137,9 @@ export async function POST(request) {
     return Response.json({
       message: 'Document uploaded successfully',
       plantation: updatedPlantation,
+      url: storedFileUrl,
+      fileName: file.name,
+      plantationId,
     }, { status: 200 });
 
   } catch (error) {

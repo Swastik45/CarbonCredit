@@ -194,16 +194,14 @@ export default function AdminDashboard() {
                     </div>
                     {p.land_document && (
                       <div className="pt-3 border-t border-slate-100 flex flex-wrap gap-2">
-                        {p.land_document && (
-                          <a
-                            href={p.land_document}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[11px] font-black px-3 py-2 rounded-xl bg-slate-50 text-slate-800 border border-slate-200 hover:bg-slate-100 transition-colors"
-                          >
-                            View land document
-                          </a>
-                        )}
+                        <a
+                          href={p.land_document}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] font-black px-3 py-2 rounded-xl bg-slate-50 text-slate-800 border border-slate-200 hover:bg-slate-100 transition-colors"
+                        >
+                          View land document
+                        </a>
                       </div>
                     )}
                   </div>

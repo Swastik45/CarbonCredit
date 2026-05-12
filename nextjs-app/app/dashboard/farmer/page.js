@@ -272,9 +272,7 @@ export default function FarmerDashboard() {
         return;
       }
 
-      setUploadMessage(
-        'Land document uploaded.'
-      );
+      setUploadMessage('Land document uploaded.');
       await loadData();
       setTimeout(() => setUploadMessage(''), 5000);
     } catch (err) {
