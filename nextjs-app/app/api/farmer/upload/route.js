@@ -141,6 +141,24 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('Upload error:', error);
-    return Response.json({ error: 'Upload failed' }, { status: 500 });
+    const message =
+      (typeof error?.message === 'string' && error.message) ||
+      (typeof error?.error_description === 'string' && error.error_description) ||
+      'Upload failed';
+
+    const debug = {
+      message,
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint,
+    };
+
+    return Response.json(
+      {
+        error: message,
+        ...(process.env.NODE_ENV !== 'production' ? { debug } : null),
+      },
+      { status: 500 }
+    );
   }
 }
