@@ -27,6 +27,8 @@ export default function FarmerDashboard() {
   const [username, setUsername] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [uploading, setUploading] = useState({ plantationId: null, type: null });
+  const [uploadMessage, setUploadMessage] = useState('');
   const [formData, setFormData] = useState({
     latitude: '',
     longitude: '',
@@ -243,6 +245,47 @@ export default function FarmerDashboard() {
     }
   };
 
+  const handleUpload = async (plantationId, type, file) => {
+    if (!file) return;
+    setError('');
+    setUploadMessage('');
+    setUploading({ plantationId, type });
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('plantationId', String(plantationId));
+      fd.append('type', type);
+
+      const res = await fetch('/api/farmer/upload', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: fd,
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || 'Upload failed');
+        return;
+      }
+
+      setUploadMessage(
+        type === 'farm_image'
+          ? 'Plantation photo uploaded.'
+          : 'Land document uploaded.'
+      );
+      await loadData();
+      setTimeout(() => setUploadMessage(''), 5000);
+    } catch (err) {
+      setError('Upload failed');
+    } finally {
+      setUploading({ plantationId: null, type: null });
+    }
+  };
+
   // Derived stats
   const verifiedCount = plantations.filter((p) => p.status === 'verified').length;
   const pendingCount = plantations.filter((p) => p.status === 'pending').length;
@@ -332,6 +375,11 @@ export default function FarmerDashboard() {
               {successMessage && (
                 <div className="mb-4 p-3 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-xl text-sm font-medium">
                   {successMessage}
+                </div>
+              )}
+              {uploadMessage && (
+                <div className="mb-4 p-3 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-xl text-sm font-medium">
+                  {uploadMessage}
                 </div>
               )}
 
@@ -548,6 +596,80 @@ export default function FarmerDashboard() {
                             <p className="text-sm font-bold text-slate-700">
                               {(p.credits || 0).toFixed(1)}
                             </p>
+                          </div>
+                        </div>
+
+                        {/* Upload evidence for verification */}
+                        <div className="mt-4 border-t border-slate-50 pt-4 space-y-3">
+                          <div className="flex flex-wrap gap-2">
+                            {p.farm_image && (
+                              <a
+                                href={p.farm_image}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-full hover:bg-emerald-100 transition-colors"
+                              >
+                                View photo
+                              </a>
+                            )}
+                            {p.land_document && (
+                              <a
+                                href={p.land_document}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-full hover:bg-slate-100 transition-colors"
+                              >
+                                View land document
+                              </a>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <label className="cursor-pointer">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) =>
+                                  handleUpload(p.id, 'farm_image', e.target.files?.[0])
+                                }
+                                disabled={uploading.plantationId === p.id}
+                              />
+                              <span
+                                className={`block text-center text-xs font-black py-2.5 rounded-xl border transition-all ${
+                                  uploading.plantationId === p.id && uploading.type === 'farm_image'
+                                    ? 'bg-slate-100 text-slate-400 border-slate-200'
+                                    : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-200'
+                                }`}
+                              >
+                                {uploading.plantationId === p.id && uploading.type === 'farm_image'
+                                  ? 'Uploading photo…'
+                                  : 'Upload plantation photo'}
+                              </span>
+                            </label>
+
+                            <label className="cursor-pointer">
+                              <input
+                                type="file"
+                                accept=".pdf,.doc,.docx,image/*"
+                                className="hidden"
+                                onChange={(e) =>
+                                  handleUpload(p.id, 'land_document', e.target.files?.[0])
+                                }
+                                disabled={uploading.plantationId === p.id}
+                              />
+                              <span
+                                className={`block text-center text-xs font-black py-2.5 rounded-xl border transition-all ${
+                                  uploading.plantationId === p.id && uploading.type === 'land_document'
+                                    ? 'bg-slate-100 text-slate-400 border-slate-200'
+                                    : 'bg-white hover:bg-slate-50 text-slate-800 border-slate-200'
+                                }`}
+                              >
+                                {uploading.plantationId === p.id && uploading.type === 'land_document'
+                                  ? 'Uploading document…'
+                                  : 'Upload land document'}
+                              </span>
+                            </label>
                           </div>
                         </div>
                       </div>

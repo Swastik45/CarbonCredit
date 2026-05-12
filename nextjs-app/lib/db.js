@@ -1,18 +1,25 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error(
-    'Missing Supabase environment variables. Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.'
-  );
+let supabaseServerSingleton = null;
+
+export function getSupabaseServer() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error(
+      'Missing Supabase environment variables. Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.'
+    );
+  }
+
+  if (!supabaseServerSingleton) {
+    supabaseServerSingleton = createClient(url, key);
+  }
+  return supabaseServerSingleton;
 }
 
-export const supabaseServer = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
 async function listAllAuthUsers() {
+  const supabaseServer = getSupabaseServer();
   const users = [];
   let page = 1;
 
@@ -41,6 +48,7 @@ export const db = {
     },
 
     async findByEmail(email) {
+      const supabaseServer = getSupabaseServer();
       const { data, error } = await supabaseServer.auth.admin.getUserByEmail(email);
       if (error) {
         if (error.message.includes('No user found')) return null;
@@ -50,6 +58,7 @@ export const db = {
     },
 
     async create(userData) {
+      const supabaseServer = getSupabaseServer();
       const { data, error } = await supabaseServer.auth.admin.createUser({
         email: userData.email,
         password: userData.password,
@@ -67,6 +76,7 @@ export const db = {
     },
 
     async findById(id) {
+      const supabaseServer = getSupabaseServer();
       const { data, error } = await supabaseServer.auth.admin.getUserById(id);
       if (error) {
         if (error.message.includes('No user found')) return null;
@@ -78,6 +88,7 @@ export const db = {
 
   plantations: {
     async create(data) {
+      const supabaseServer = getSupabaseServer();
       const { data: plantation, error } = await supabaseServer
         .from('plantations')
         .insert([{ ...data }])
@@ -89,6 +100,7 @@ export const db = {
     },
 
     async update(id, data) {
+      const supabaseServer = getSupabaseServer();
       const { data: plantation, error } = await supabaseServer
         .from('plantations')
         .update({ ...data })
@@ -101,12 +113,14 @@ export const db = {
     },
 
     async all() {
+      const supabaseServer = getSupabaseServer();
       const { data, error } = await supabaseServer.from('plantations').select('*');
       if (error) throw error;
       return data;
     },
 
     async findByFarmerId(farmerId) {
+      const supabaseServer = getSupabaseServer();
       const { data, error } = await supabaseServer
         .from('plantations')
         .select('*')
@@ -116,6 +130,7 @@ export const db = {
     },
 
     async findByStatus(status) {
+      const supabaseServer = getSupabaseServer();
       const { data, error } = await supabaseServer
         .from('plantations')
         .select('*')
@@ -125,6 +140,7 @@ export const db = {
     },
 
     async findById(id) {
+      const supabaseServer = getSupabaseServer();
       const { data, error } = await supabaseServer
         .from('plantations')
         .select('*')
@@ -137,6 +153,7 @@ export const db = {
 
   purchases: {
     async create(data) {
+      const supabaseServer = getSupabaseServer();
       const { data: purchase, error } = await supabaseServer
         .from('purchases')
         .insert([{ ...data }])
@@ -148,6 +165,7 @@ export const db = {
     },
 
     async findByBusinessId(businessId) {
+      const supabaseServer = getSupabaseServer();
       const { data, error } = await supabaseServer
         .from('purchases')
         .select('*')
@@ -157,6 +175,7 @@ export const db = {
     },
 
     async all() {
+      const supabaseServer = getSupabaseServer();
       const { data, error } = await supabaseServer.from('purchases').select('*');
       if (error) throw error;
       return data;

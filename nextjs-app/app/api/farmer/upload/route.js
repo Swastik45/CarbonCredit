@@ -1,4 +1,4 @@
-import { db, supabaseServer } from '@/lib/db';
+import { db, getSupabaseServer } from '@/lib/db';
 import { requireAuth } from '@/lib/auth';
 import path from 'path';
 
@@ -7,19 +7,35 @@ export async function POST(request) {
   if (auth.error) return Response.json({ error: auth.error }, { status: auth.status });
 
   try {
+    const supabaseServer = getSupabaseServer();
     const formData = await request.formData();
     const file = formData.get('file');
     const plantationIdRaw = formData.get('plantationId');
-    const documentType = formData.get('type');
+    const documentTypeRaw = formData.get('type');
 
-    if (!file || !plantationIdRaw || !documentType) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+
+    if (!file || !plantationIdRaw || !documentTypeRaw) {
+      return Response.json(
+        {
+          error: 'Missing required fields',
+          received: {
+            hasFile: !!file,
+            plantationIdPresent: !!plantationIdRaw,
+            typePresent: !!documentTypeRaw,
+          },
+        },
+        { status: 400 }
+      );
     }
 
     const plantationId = Number(plantationIdRaw);
     if (!Number.isFinite(plantationId)) {
       return Response.json({ error: 'Invalid plantation id' }, { status: 400 });
     }
+
+    // Normalize document type to avoid casing/format mismatches
+    const normalizedType = String(documentTypeRaw).trim().toLowerCase().replace(/\s+/g, '_');
+
 
     if (typeof file.arrayBuffer !== 'function') {
       return Response.json({ error: 'Invalid file payload' }, { status: 400 });
@@ -38,27 +54,35 @@ export async function POST(request) {
       return Response.json({ error: 'Plantation not found or access denied' }, { status: 403 });
     }
 
-    // REMOVED: farm_image — only land_document is used by the dashboard
-    const allowedTypes = new Set(['land_document']);
-    const normalizedType = String(documentType);
+    const allowedTypes = new Set(['land_document', 'farm_image']);
     if (!allowedTypes.has(normalizedType)) {
-      return Response.json({ error: 'Invalid document type' }, { status: 400 });
+      return Response.json(
+        {
+          error: 'Invalid document type',
+          receivedType: documentTypeRaw,
+          normalizedType,
+        },
+        { status: 400 }
+      );
     }
 
-    // REMOVED: farm_image mime types — now a single flat set
-    const allowedMimeTypes = new Set([
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'image/jpeg',
-      'image/png',
-      'image/webp',
-    ]);
+    const allowedMimeTypesByType = {
+      land_document: new Set([
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+      ]),
+      farm_image: new Set(['image/jpeg', 'image/png', 'image/webp']),
+    };
 
     const mimeType = file.type || 'application/octet-stream';
-    if (!allowedMimeTypes.has(mimeType)) {
+    const allowedMimeTypes = allowedMimeTypesByType[normalizedType];
+    if (!allowedMimeTypes?.has(mimeType)) {
       return Response.json(
-        { error: `Invalid file type for land_document. Received: ${mimeType}` },
+        { error: `Invalid file type for ${normalizedType}. Received: ${mimeType}` },
         { status: 400 }
       );
     }
@@ -66,7 +90,7 @@ export async function POST(request) {
     const extension = path.extname(file.name) || '';
     const safeName = path.basename(file.name, extension).replace(/[^a-zA-Z0-9-_]/g, '_').slice(0, 80) || 'upload';
     const uniquePart = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    const storagePath = `${plantationId}/land_document/${uniquePart}-${safeName}${extension}`;
+    const storagePath = `${plantationId}/${normalizedType}/${uniquePart}-${safeName}${extension}`;
     const bucket = process.env.SUPABASE_STORAGE_BUCKET || 'plantation-documents';
 
     const { data: existingBucket, error: bucketError } = await supabaseServer.storage.getBucket(bucket);
@@ -78,7 +102,13 @@ export async function POST(request) {
       const { error: createBucketError } = await supabaseServer.storage.createBucket(bucket, {
         public: true,
         fileSizeLimit: `${Math.floor(maxFileSize / (1024 * 1024))}MB`,
-        allowedMimeTypes: Array.from(allowedMimeTypes), // SIMPLIFIED: single set now
+        // Allow the union so the same bucket supports both doc + image uploads.
+        allowedMimeTypes: Array.from(
+          new Set([
+            ...allowedMimeTypesByType.land_document,
+            ...allowedMimeTypesByType.farm_image,
+          ])
+        ),
       });
 
       if (
@@ -106,11 +136,20 @@ export async function POST(request) {
     const { data: publicUrlData } = supabaseServer.storage.from(bucket).getPublicUrl(storagePath);
     const storedFileUrl = publicUrlData?.publicUrl || storagePath;
 
-    // REMOVED: farm_image branch — only land_document update remains
-    const updatedPlantation = await db.plantations.update(plantationId, {
-      land_document: storedFileUrl,
-      land_document_name: file.name,
-    });
+    let updatedPlantation;
+    if (normalizedType === 'land_document') {
+      updatedPlantation = await db.plantations.update(plantationId, {
+        land_document: storedFileUrl,
+        land_document_name: file.name,
+      });
+    } else if (normalizedType === 'farm_image') {
+      // Note: this expects the `plantations` table to have `farm_image` columns (common in older versions).
+      // If your schema uses a different column name, update it here and in the dashboards.
+      updatedPlantation = await db.plantations.update(plantationId, {
+        farm_image: storedFileUrl,
+        farm_image_name: file.name,
+      });
+    }
 
     return Response.json({
       message: 'Document uploaded successfully',

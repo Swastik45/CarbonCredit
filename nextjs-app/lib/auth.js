@@ -1,15 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error(
-    'Missing Supabase environment variables. Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.'
-  );
-}
-
-const supabaseServer = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import { getSupabaseServer } from '@/lib/db';
 
 export function getAuthFromHeaders(headers) {
   const authHeader = headers.get('authorization') || headers.get('Authorization');
@@ -26,6 +15,13 @@ export async function requireAuth(headers, expectedType = null) {
   }
 
   // Verify bearer token with Supabase for every role.
+  let supabaseServer;
+  try {
+    supabaseServer = getSupabaseServer();
+  } catch (e) {
+    return { error: 'Auth service not configured', status: 500 };
+  }
+
   const { data, error } = await supabaseServer.auth.getUser(token);
   if (error || !data?.user) {
     return { error: 'Unauthorized', status: 401 };
