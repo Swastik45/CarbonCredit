@@ -85,6 +85,25 @@ export async function POST(request) {
     return Response.json({ message: 'Plantation added', plantation }, { status: 201 });
   } catch (error) {
     console.error('Create plantation error:', error);
-    return Response.json({ error: 'Failed to create plantation' }, { status: 500 });
+    const message =
+      (typeof error?.message === 'string' && error.message) ||
+      (typeof error?.error_description === 'string' && error.error_description) ||
+      'Failed to create plantation';
+
+    // Surface supabase/postgrest details so schema issues are actionable.
+    const details = {
+      message,
+      code: error?.code,
+      details: error?.details,
+      hint: error?.hint,
+    };
+
+    return Response.json(
+      {
+        error: message,
+        ...(process.env.NODE_ENV !== 'production' ? { debug: details } : null),
+      },
+      { status: 500 }
+    );
   }
 }
