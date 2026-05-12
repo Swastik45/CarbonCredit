@@ -273,9 +273,7 @@ export default function FarmerDashboard() {
       }
 
       setUploadMessage(
-        type === 'farm_image'
-          ? 'Plantation photo uploaded.'
-          : 'Land document uploaded.'
+        'Land document uploaded.'
       );
       await loadData();
       setTimeout(() => setUploadMessage(''), 5000);
@@ -602,16 +600,6 @@ export default function FarmerDashboard() {
                         {/* Upload evidence for verification */}
                         <div className="mt-4 border-t border-slate-50 pt-4 space-y-3">
                           <div className="flex flex-wrap gap-2">
-                            {p.farm_image && (
-                              <a
-                                href={p.farm_image}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-full hover:bg-emerald-100 transition-colors"
-                              >
-                                View photo
-                              </a>
-                            )}
                             {p.land_document && (
                               <a
                                 href={p.land_document}
@@ -624,30 +612,7 @@ export default function FarmerDashboard() {
                             )}
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <label className="cursor-pointer">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) =>
-                                  handleUpload(p.id, 'farm_image', e.target.files?.[0])
-                                }
-                                disabled={uploading.plantationId === p.id}
-                              />
-                              <span
-                                className={`block text-center text-xs font-black py-2.5 rounded-xl border transition-all ${
-                                  uploading.plantationId === p.id && uploading.type === 'farm_image'
-                                    ? 'bg-slate-100 text-slate-400 border-slate-200'
-                                    : 'bg-white hover:bg-emerald-50 text-emerald-700 border-emerald-200'
-                                }`}
-                              >
-                                {uploading.plantationId === p.id && uploading.type === 'farm_image'
-                                  ? 'Uploading photo…'
-                                  : 'Upload plantation photo'}
-                              </span>
-                            </label>
-
+                          <div className="grid grid-cols-1 gap-2">
                             <label className="cursor-pointer">
                               <input
                                 type="file"

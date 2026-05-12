@@ -54,7 +54,7 @@ export async function POST(request) {
       return Response.json({ error: 'Plantation not found or access denied' }, { status: 403 });
     }
 
-    const allowedTypes = new Set(['land_document', 'farm_image']);
+    const allowedTypes = new Set(['land_document']);
     if (!allowedTypes.has(normalizedType)) {
       return Response.json(
         {
@@ -75,7 +75,6 @@ export async function POST(request) {
         'image/png',
         'image/webp',
       ]),
-      farm_image: new Set(['image/jpeg', 'image/png', 'image/webp']),
     };
 
     const mimeType = file.type || 'application/octet-stream';
@@ -102,13 +101,7 @@ export async function POST(request) {
       const { error: createBucketError } = await supabaseServer.storage.createBucket(bucket, {
         public: true,
         fileSizeLimit: `${Math.floor(maxFileSize / (1024 * 1024))}MB`,
-        // Allow the union so the same bucket supports both doc + image uploads.
-        allowedMimeTypes: Array.from(
-          new Set([
-            ...allowedMimeTypesByType.land_document,
-            ...allowedMimeTypesByType.farm_image,
-          ])
-        ),
+        allowedMimeTypes: Array.from(allowedMimeTypesByType.land_document),
       });
 
       if (
@@ -136,20 +129,10 @@ export async function POST(request) {
     const { data: publicUrlData } = supabaseServer.storage.from(bucket).getPublicUrl(storagePath);
     const storedFileUrl = publicUrlData?.publicUrl || storagePath;
 
-    let updatedPlantation;
-    if (normalizedType === 'land_document') {
-      updatedPlantation = await db.plantations.update(plantationId, {
-        land_document: storedFileUrl,
-        land_document_name: file.name,
-      });
-    } else if (normalizedType === 'farm_image') {
-      // Note: this expects the `plantations` table to have `farm_image` columns (common in older versions).
-      // If your schema uses a different column name, update it here and in the dashboards.
-      updatedPlantation = await db.plantations.update(plantationId, {
-        farm_image: storedFileUrl,
-        farm_image_name: file.name,
-      });
-    }
+    const updatedPlantation = await db.plantations.update(plantationId, {
+      land_document: storedFileUrl,
+      land_document_name: file.name,
+    });
 
     return Response.json({
       message: 'Document uploaded successfully',

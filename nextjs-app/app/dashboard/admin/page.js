@@ -192,18 +192,8 @@ export default function AdminDashboard() {
                       <span className="text-slate-400">Coordinates</span>
                       <span className="font-mono text-[11px] bg-slate-50 px-2 rounded">{p.latitude.toFixed(4)}, {p.longitude.toFixed(4)}</span>
                     </div>
-                    {(p.farm_image || p.land_document) && (
+                    {p.land_document && (
                       <div className="pt-3 border-t border-slate-100 flex flex-wrap gap-2">
-                        {p.farm_image && (
-                          <a
-                            href={p.farm_image}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[11px] font-black px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 transition-colors"
-                          >
-                            View photo
-                          </a>
-                        )}
                         {p.land_document && (
                           <a
                             href={p.land_document}
