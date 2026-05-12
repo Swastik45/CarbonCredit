@@ -28,6 +28,12 @@ export default function RootLayout({ children }) {
               <Link href="/ndvi-guide" className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition-colors">
                 NDVI Guide
               </Link>
+              <Link
+                href="/admin"
+                className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                Admin
+              </Link>
               <Link 
                 href="/login" 
                 className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 transition-all active:scale-95"

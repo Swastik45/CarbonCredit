@@ -150,8 +150,8 @@ export default function LoginPage() {
           </div>
 
           {/* User Type Selector */}
-          <div className="grid grid-cols-3 gap-3 mb-8 p-1.5 bg-slate-100 rounded-2xl">
-            {['farmer', 'business', 'admin'].map(type => (
+          <div className="grid grid-cols-2 gap-3 mb-8 p-1.5 bg-slate-100 rounded-2xl">
+            {['farmer', 'business'].map(type => (
               <button
                 key={type}
                 type="button"
@@ -164,7 +164,7 @@ export default function LoginPage() {
                 `}
               >
                 <span className="text-lg mb-1">
-                  {type === 'farmer' ? '👨‍🌾' : type === 'business' ? '🏢' : '🔐'}
+                  {type === 'farmer' ? '👨‍🌾' : '🏢'}
                 </span>
                 <span className="capitalize">{type}</span>
               </button>

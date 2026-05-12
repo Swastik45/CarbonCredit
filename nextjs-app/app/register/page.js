@@ -114,8 +114,8 @@ export default function RegisterPage() {
           </div>
 
           {/* User Type Switcher */}
-          <div className="grid grid-cols-3 gap-2 mb-8 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/50">
-            {['farmer', 'business', 'admin'].map(type => (
+          <div className="grid grid-cols-2 gap-2 mb-8 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/50">
+            {['farmer', 'business'].map(type => (
               <button
                 key={type}
                 type="button"
@@ -128,7 +128,7 @@ export default function RegisterPage() {
                 `}
               >
                 <span className="text-xl mb-1">
-                  {type === 'farmer' ? '👨‍🌾' : type === 'business' ? '🏢' : '🔐'}
+                  {type === 'farmer' ? '👨‍🌾' : '🏢'}
                 </span>
                 <span className="text-[10px] uppercase font-black tracking-tighter capitalize">{type}</span>
               </button>

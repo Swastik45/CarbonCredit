@@ -14,9 +14,11 @@ export default function AdminDashboard() {
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     const userType = localStorage.getItem('userType');
+    const adminPassword = localStorage.getItem('admin_password');
     
-    if (!token || userType !== 'admin') {
-      router.push('/login');
+    // Allow either Supabase admin login OR local password-gated admin.
+    if ((!token || userType !== 'admin') && adminPassword !== 'admin123') {
+      router.push('/admin');
       return;
     }
 
@@ -27,7 +29,11 @@ export default function AdminDashboard() {
     try {
       setError('');
       const token = localStorage.getItem('accessToken');
-      const headers = { Authorization: `Bearer ${token}` };
+      const adminPassword = localStorage.getItem('admin_password');
+      const headers =
+        adminPassword === 'admin123'
+          ? { 'x-admin-password': adminPassword }
+          : { Authorization: `Bearer ${token}` };
       const res = await fetch('/api/admin/plantations', { headers });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -47,10 +53,13 @@ export default function AdminDashboard() {
       setError('');
       setActionMessage('');
       const token = localStorage.getItem('accessToken');
+      const adminPassword = localStorage.getItem('admin_password');
       const res = await fetch('/api/admin/verify', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...(adminPassword === 'admin123'
+            ? { 'x-admin-password': adminPassword }
+            : { Authorization: `Bearer ${token}` }),
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ plantationId, status }),
@@ -76,6 +85,7 @@ export default function AdminDashboard() {
     localStorage.removeItem('user_id');
     localStorage.removeItem('user_type');
     localStorage.removeItem('username');
+    localStorage.removeItem('admin_password');
     router.push('/');
   };
 
