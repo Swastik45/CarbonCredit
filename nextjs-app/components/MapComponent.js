@@ -4,13 +4,15 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-export default function MapComponent({ plantations, onSearch, showSearch = false }) {
+export default function MapComponent({ plantations, onSearch, showSearch = false, searchLocation = null, searchRadius = 5000 }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markersRef = useRef([]);
   const searchCircleRef = useRef(null);
   const [selectedPlantation, setSelectedPlantation] = useState(null);
-  const [searchLocation, setSearchLocation] = useState(null);
+  const [internalSearchLocation, setInternalSearchLocation] = useState(null);
+
+  const activeSearchLocation = searchLocation || internalSearchLocation;
 
   useEffect(() => {
     if (!mapRef.current || !plantations.length) return;
@@ -119,6 +121,34 @@ export default function MapComponent({ plantations, onSearch, showSearch = false
     };
   }, [plantations]);
 
+  useEffect(() => {
+    if (!mapInstance.current) return;
+
+    if (searchCircleRef.current) {
+      mapInstance.current.removeLayer(searchCircleRef.current);
+      searchCircleRef.current = null;
+    }
+
+    if (!activeSearchLocation || typeof activeSearchLocation.latitude !== 'number' || typeof activeSearchLocation.longitude !== 'number') {
+      return;
+    }
+
+    const circle = L.circle(
+      [activeSearchLocation.latitude, activeSearchLocation.longitude],
+      {
+        color: '#3b82f6',
+        fillColor: '#93c5fd',
+        fillOpacity: 0.1,
+        weight: 2,
+        radius: searchRadius,
+        dashArray: '5, 5',
+      }
+    ).addTo(mapInstance.current);
+
+    searchCircleRef.current = circle;
+    mapInstance.current.setView([activeSearchLocation.latitude, activeSearchLocation.longitude], 12);
+  }, [activeSearchLocation, searchRadius]);
+
   const handleSearch = async (e) => {
     e.preventDefault();
     const searchInput = e.target.elements.searchInput;
@@ -132,7 +162,7 @@ export default function MapComponent({ plantations, onSearch, showSearch = false
       
       if (data.locations && data.locations.length > 0) {
         const location = data.locations[0];
-        setSearchLocation(location);
+        setInternalSearchLocation(location);
         
         // Pan to location
         if (mapInstance.current) {
@@ -143,24 +173,6 @@ export default function MapComponent({ plantations, onSearch, showSearch = false
         if (onSearch) {
           onSearch(location);
         }
-
-        // Add search circle
-        if (searchCircleRef.current && mapInstance.current) {
-          mapInstance.current.removeLayer(searchCircleRef.current);
-        }
-
-        const circle = L.circle(
-          [location.latitude, location.longitude],
-          {
-            color: '#3b82f6',
-            fillColor: '#93c5fd',
-            fillOpacity: 0.1,
-            weight: 2,
-            radius: 5000, // 5km radius
-            dashArray: '5, 5',
-          }
-        ).addTo(mapInstance.current);
-        searchCircleRef.current = circle;
       }
     } catch (error) {
       console.error('Search error:', error);

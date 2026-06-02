@@ -294,7 +294,7 @@ export default function MapPage() {
               <p className="text-slate-400 font-medium">Loading geospatial data...</p>
             </div>
           ) : (
-            <MapComponent plantations={plantations} />
+            <MapComponent plantations={plantations} searchLocation={searchLocation} />
           )}
 
           {/* Smart search floats over the map */}
