@@ -45,9 +45,9 @@ export default function HomePage() {
               <Link href="/login" className="bg-emerald-900 text-white px-10 py-4 rounded-xl font-bold hover:bg-emerald-800 transition-all shadow-xl shadow-emerald-900/20 active:scale-95">
                 Get Started
               </Link>
-              <button className="bg-white border border-slate-200 text-slate-700 px-10 py-4 rounded-xl font-bold hover:bg-slate-50 transition-all">
+              <Link href="/map" className="bg-transparent border border-emerald-900 text-emerald-900 px-10 py-4 rounded-xl font-bold hover:bg-emerald-50 transition-all shadow-sm hover:shadow-md">
                 View Map
-              </button>
+              </Link>
             </div>
           </div>
           
