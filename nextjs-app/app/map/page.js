@@ -229,10 +229,7 @@ export default function MapPage() {
                 Our interactive map provides full audit trails for every hectare of land listed on our platform. 
                 Data is updated every 14 days via satellite passovers.
               </p>
-              <div className="flex gap-4">
-                <button className="bg-emerald-500 text-emerald-950 px-6 py-3 rounded-xl font-bold text-sm">Download Report</button>
-                <button className="border border-slate-700 px-6 py-3 rounded-xl font-bold text-sm">NDVI Guide</button>
-              </div>
+             
             </div>
 
             <div className="space-y-6">
