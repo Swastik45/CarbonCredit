@@ -23,7 +23,8 @@ export async function GET(request) {
 
     const supabaseServer = createClient(url, key);
     const origin = new URL(request.url).origin;
-    const redirectTo = `${origin}/auth/confirm?userType=${userType}`;
+    // Redirect directly to /auth/callback so user lands on dashboard after Google login
+    const redirectTo = `${origin}/auth/callback?userType=${userType}`;
 
     const { data, error } = await supabaseServer.auth.signInWithOAuth({
       provider: 'google',
@@ -31,7 +32,7 @@ export async function GET(request) {
         redirectTo,
         queryParams: {
           access_type: 'offline',
-          prompt: 'consent',
+          prompt: 'select_account',
         },
       },
     });
@@ -53,11 +54,11 @@ export async function GET(request) {
 
 /**
  * POST /api/auth/google
- * Verifies Google ID token or token payload.
+ * Processes Google OAuth token or code after callback.
  */
 export async function POST(request) {
   try {
-    const { token, userType = 'farmer' } = await request.json();
+    const { token, code, userType = 'farmer' } = await request.json();
 
     const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -69,25 +70,29 @@ export async function POST(request) {
     }
     const supabaseServer = createClient(url, key);
 
-    if (!token) {
-      return NextResponse.json({ error: 'Google ID token required' }, { status: 400 });
+    let sessionData = null;
+
+    if (code) {
+      const { data, error } = await supabaseServer.auth.exchangeCodeForSession(code);
+      if (!error && data?.session) {
+        sessionData = data;
+      }
     }
 
-    // Verify Google ID token with Supabase Auth
-    const { data, error } = await supabaseServer.auth.signInWithIdToken({
-      provider: 'google',
-      token,
-    });
-
-    if (error || !data?.session) {
-      console.error('Google auth error:', error);
-      return NextResponse.json({ error: error?.message || 'Google authentication failed' }, { status: 401 });
+    if (!sessionData && token) {
+      const { data, error } = await supabaseServer.auth.getUser(token);
+      if (!error && data?.user) {
+        sessionData = { session: { access_token: token }, user: data.user };
+      }
     }
 
-    const user = data.user;
+    if (!sessionData?.user) {
+      return NextResponse.json({ error: 'Failed to authenticate session' }, { status: 401 });
+    }
+
+    const user = sessionData.user;
     const existingType = user.user_metadata?.userType;
 
-    // Update user metadata if userType wasn't set yet
     if (!existingType) {
       await supabaseServer.auth.admin.updateUserById(user.id, {
         user_metadata: {
@@ -106,13 +111,12 @@ export async function POST(request) {
       userId: user.id,
       userType: finalType,
       username,
-      accessToken: data.session.access_token,
+      accessToken: sessionData.session.access_token,
     });
 
-    return attachSessionCookie(response, data.session.access_token);
+    return attachSessionCookie(response, sessionData.session.access_token);
   } catch (err) {
-    console.error('Google login route error:', err);
+    console.error('Google login processing error:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-
