@@ -138,12 +138,14 @@ export default function AuthPage({ initialView = 'login' }) {
           return;
         }
 
-        // Store non-sensitive user metadata for client UI
+        // Store user metadata for client UI + API calls
+        localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('userId', data.userId);
         localStorage.setItem('userType', data.userType);
         localStorage.setItem('username', data.username || '');
 
         router.push(`/dashboard/${data.userType}`);
+
       } else if (view === 'signup') {
         const res = await fetch('/api/auth/register', {
           method: 'POST',

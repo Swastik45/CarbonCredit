@@ -12,18 +12,18 @@ export default function AdminDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    const userType = localStorage.getItem('userType');
+    const userType = localStorage.getItem('userType') || localStorage.getItem('user_type');
     const adminPassword = localStorage.getItem('admin_password');
     
-    // Allow either Supabase admin login OR local password-gated admin.
-    if ((!token || userType !== 'admin') && adminPassword !== 'admin123') {
+    // Allow either Supabase admin login (userType=admin) OR local password-gated admin.
+    if (userType !== 'admin' && adminPassword !== 'admin123') {
       router.push('/admin');
       return;
     }
 
     loadData();
   }, []);
+
 
   const loadData = async () => {
     try {

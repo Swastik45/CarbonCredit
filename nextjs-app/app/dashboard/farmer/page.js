@@ -95,11 +95,13 @@ export default function FarmerDashboard() {
   }, [handleLogout]);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    const userType = localStorage.getItem('userType');
+    // accessToken is used for API Authorization headers
+    // userType gates which dashboard the user sees
+    // The real security is the HttpOnly session cookie checked by middleware + API routes
+    const userType = localStorage.getItem('userType') || localStorage.getItem('user_type');
     const savedUsername = localStorage.getItem('username');
 
-    if (!token || userType !== 'farmer') {
+    if (userType !== 'farmer') {
       router.push('/login');
       return;
     }

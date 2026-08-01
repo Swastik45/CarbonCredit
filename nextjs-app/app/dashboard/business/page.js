@@ -25,10 +25,10 @@ export default function BusinessDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    const userType = localStorage.getItem('userType');
+    // Only check userType for role routing — real auth is the HttpOnly session cookie
+    const userType = localStorage.getItem('userType') || localStorage.getItem('user_type');
     
-    if (!token || userType !== 'business') {
+    if (userType !== 'business') {
       router.push('/login');
       return;
     }
@@ -37,6 +37,7 @@ export default function BusinessDashboard() {
     const pollInterval = setInterval(loadData, 5000);
     return () => clearInterval(pollInterval);
   }, []);
+
 
   useEffect(() => {
     let filtered = [...plantations];

@@ -54,6 +54,10 @@ export default function CallbackClient({ searchParams }) {
         const data = await res.json();
         const finalUserType = data?.userType || userType;
 
+        // Store access token + metadata for dashboard auth checks and API calls
+        if (data?.accessToken) {
+          localStorage.setItem('accessToken', data.accessToken);
+        }
         if (data?.userId) {
           localStorage.setItem('userId', data.userId);
           localStorage.setItem('user_id', data.userId);
@@ -63,6 +67,7 @@ export default function CallbackClient({ searchParams }) {
         if (data?.username) {
           localStorage.setItem('username', data.username);
         }
+
         // Clean up pending type
         localStorage.removeItem('pendingUserType');
 
