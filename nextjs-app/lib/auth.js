@@ -1,4 +1,5 @@
 import { getSupabaseServer } from '@/lib/db';
+import { readSessionToken } from '@/lib/authSession';
 
 export function getAuthFromHeaders(headers) {
   const authHeader = headers.get('authorization') || headers.get('Authorization');
@@ -8,8 +9,16 @@ export function getAuthFromHeaders(headers) {
   return token || null;
 }
 
-export async function requireAuth(headers, expectedType = null) {
-  const token = getAuthFromHeaders(headers);
+export async function requireAuth(reqOrHeaders, expectedType = null) {
+  let token = null;
+
+  // Support receiving Request object or Headers object
+  if (reqOrHeaders && typeof reqOrHeaders.headers === 'object') {
+    token = readSessionToken(reqOrHeaders);
+  } else if (reqOrHeaders && typeof reqOrHeaders.get === 'function') {
+    token = getAuthFromHeaders(reqOrHeaders);
+  }
+
   if (!token) {
     return { error: 'Unauthorized', status: 401 };
   }
@@ -39,3 +48,4 @@ export async function requireAuth(headers, expectedType = null) {
     username: data.user.user_metadata?.username,
   };
 }
+

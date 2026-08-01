@@ -1,24 +1,39 @@
+import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { db } from '@/lib/db';
+import { isRateLimited } from '@/lib/rateLimit';
 
 export async function POST(request) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || '127.0.0.1';
+
+  const { username, password, email, userType, skipEmail } = await request.json();
+
+  if (!username || !password || !email) {
+    return NextResponse.json({ error: 'Username, email, and password are required' }, { status: 400 });
+  }
+
+  // Rate Limiting
+  const rateLimitKey = `register:${ip}`;
+  const rateCheck = await isRateLimited(rateLimitKey, 5, 15 * 60 * 1000);
+  if (rateCheck.limited) {
+    return NextResponse.json(
+      { error: 'Too many registration attempts from this IP. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) {
-    return Response.json(
+    return NextResponse.json(
       { error: 'Auth service not configured (missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)' },
       { status: 500 }
     );
   }
   const supabaseServer = createClient(url, key);
 
-  const { username, password, email, userType, skipEmail } = await request.json();
-
-  if (!username || !password || !email) {
-    return Response.json({ error: 'Username, email, and password are required' }, { status: 400 });
-  }
-
   try {
+
     console.log('Creating user with:', { username, email, userType });
 
     // For admin users, create directly without email confirmation
