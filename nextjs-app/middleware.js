@@ -46,10 +46,11 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization)
      * - favicon.ico
-     * - /api/auth/* (auth API routes are public by design)
-     * - /auth/* (email confirmation / OAuth callback pages)
+     * - /api/auth/* (all auth API routes are public by design)
+     * - /auth/* (email confirmation / OAuth callback / reset-password pages)
      * - Root / (landing page)
      */
     '/((?!_next/static|_next/image|favicon.ico|api/auth|auth/).*)',
   ],
 };
+

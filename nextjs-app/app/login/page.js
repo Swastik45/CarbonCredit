@@ -1,6 +1,6 @@
 'use client';
 
-import AuthPage from '@/components/AuthPage.jsx';
+import AuthPage from '@/components/AuthPage';
 
 export default function LoginPage() {
   return <AuthPage initialView="login" />;

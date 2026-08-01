@@ -34,7 +34,11 @@ export async function POST(request) {
   const supabaseServer = createClient(url, key);
 
   try {
-    const user = await db.users.findByUsername(username);
+    // Try username lookup first; fall back to email lookup so users can log in with either
+    let user = await db.users.findByUsername(username);
+    if (!user && username.includes('@')) {
+      user = await db.users.findByEmail(username);
+    }
 
     if (!user || !user.email) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
