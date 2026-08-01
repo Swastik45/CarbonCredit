@@ -16,6 +16,32 @@ export default function ConfirmClient({ searchParams }) {
   const router = useRouter();
 
   useEffect(() => {
+    // 1. Check URL Hash (Supabase Auth redirects containing #access_token=... or #error=...)
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      
+      const errorDesc = hashParams.get('error_description');
+      const errorCode = hashParams.get('error');
+      const accessToken = hashParams.get('access_token');
+      const type = hashParams.get('type');
+
+      if (accessToken || type === 'signup' || type === 'email' || type === 'recovery') {
+        setStatus('success');
+        setMessage('Email confirmed successfully! You can now log in.');
+        const timeout = setTimeout(() => {
+          router.push('/login?message=email_confirmed');
+        }, 3000);
+        return () => clearTimeout(timeout);
+      }
+
+      if (errorDesc || errorCode) {
+        setStatus('error');
+        setMessage(decodeURIComponent(errorDesc || errorCode || 'Confirmation link is invalid or has expired.'));
+        return;
+      }
+    }
+
+    // 2. Check query searchParams (success, error, or token_hash/code)
     const success = getParam(searchParams, 'success');
     const error = getParam(searchParams, 'error');
 
@@ -30,16 +56,17 @@ export default function ConfirmClient({ searchParams }) {
 
     if (error === 'invalid_link') {
       setStatus('error');
-      setMessage('Invalid confirmation link. Please check your email for the correct link.');
+      setMessage('Invalid confirmation link. Please check your email for the latest link.');
       return;
     }
 
     if (error === 'failed') {
       setStatus('error');
-      setMessage('Email confirmation failed. The link may have expired or already been used. Please try logging in or registering again.');
+      setMessage('Email confirmation failed. The link may have expired or already been used.');
       return;
     }
 
+    // 3. Fallback: Verify token_hash or code via backend API route
     const confirmEmail = async () => {
       const token_hash = getParam(searchParams, 'token_hash') || getParam(searchParams, 'token');
       const code = getParam(searchParams, 'code');
@@ -47,7 +74,7 @@ export default function ConfirmClient({ searchParams }) {
 
       if (!token_hash && !code) {
         setStatus('error');
-        setMessage('Invalid confirmation link');
+        setMessage('Invalid confirmation link or missing parameters.');
         return;
       }
 
@@ -77,7 +104,7 @@ export default function ConfirmClient({ searchParams }) {
                 ? 'Invalid confirmation link'
                 : errorRes === 'failed'
                 ? 'Confirmation failed. The link may have expired or already been used.'
-                : 'An error occurred'
+                : 'An error occurred during verification'
             );
           }
         } else {
