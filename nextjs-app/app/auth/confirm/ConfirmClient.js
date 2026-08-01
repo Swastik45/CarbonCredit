@@ -4,14 +4,20 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+function getParam(params, key) {
+  if (!params) return null;
+  if (typeof params.get === 'function') return params.get(key);
+  return params[key] || null;
+}
+
 export default function ConfirmClient({ searchParams }) {
   const [status, setStatus] = useState('loading');
   const [message, setMessage] = useState('');
   const router = useRouter();
 
   useEffect(() => {
-    const success = searchParams.get('success');
-    const error = searchParams.get('error');
+    const success = getParam(searchParams, 'success');
+    const error = getParam(searchParams, 'error');
 
     if (success === 'true') {
       setStatus('success');
@@ -35,8 +41,9 @@ export default function ConfirmClient({ searchParams }) {
     }
 
     const confirmEmail = async () => {
-      const token_hash = searchParams.get('token_hash');
-      const type = searchParams.get('type');
+      const token_hash = getParam(searchParams, 'token_hash');
+      const type = getParam(searchParams, 'type');
+
 
       if (!token_hash || type !== 'email') {
         setStatus('error');
