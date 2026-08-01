@@ -39,7 +39,11 @@ export default function FarmerDashboard() {
   const router = useRouter();
 
   // FIX 1: handleLogout defined BEFORE loadData so it can be referenced inside it
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
+    // Call server to clear HttpOnly session cookie
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (_) {}
     localStorage.removeItem('accessToken');
     localStorage.removeItem('userId');
     localStorage.removeItem('userType');
@@ -48,6 +52,7 @@ export default function FarmerDashboard() {
     localStorage.removeItem('username');
     router.push('/');
   }, [router]);
+
 
   // FIX 2: loadData wrapped in useCallback so it can be safely used in useEffect deps
   const loadData = useCallback(async () => {

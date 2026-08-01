@@ -55,6 +55,11 @@ export default function AuthPage({ initialView = 'login' }) {
     setGoogleLoading(true);
     setError('');
     try {
+      // Save selected userType in localStorage so callback/landing page knows where to redirect
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('pendingUserType', userType);
+      }
+
       // Primary: Use server-side endpoint which reads SUPABASE_URL & SUPABASE_SERVICE_ROLE_KEY
       const res = await fetch(`/api/auth/google?userType=${userType}`);
       const data = await res.json();
@@ -70,7 +75,7 @@ export default function AuthPage({ initialView = 'login' }) {
 
       if (supabaseUrl && supabaseAnonKey) {
         const supabase = createClient(supabaseUrl, supabaseAnonKey);
-        const redirectTo = `${window.location.origin}/dashboard/${userType}`;
+        const redirectTo = `${window.location.origin}/auth/callback?userType=${userType}`;
 
         const { error: oauthErr } = await supabase.auth.signInWithOAuth({
           provider: 'google',
@@ -93,6 +98,7 @@ export default function AuthPage({ initialView = 'login' }) {
       setGoogleLoading(false);
     }
   };
+
 
 
   const handleSubmit = async (e) => {

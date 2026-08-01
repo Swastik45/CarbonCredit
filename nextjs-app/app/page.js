@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 // Using specific Unsplash IDs to ensure they don't repeat
@@ -18,6 +19,25 @@ const steps = [
 
 export default function HomePage() {
   const [stats, setStats] = useState({ activePlantations: 1240, totalCreditsTraded: 45200, verifiedFarmers: 890 });
+  const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Check if returning from Google OAuth or if user session exists
+    const hasHashToken = window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('type=signup'));
+    const hasSearchCode = window.location.search && (window.location.search.includes('code=') || window.location.search.includes('userType='));
+    const pendingType = localStorage.getItem('pendingUserType');
+    const existingType = localStorage.getItem('userType');
+
+    if (hasHashToken || hasSearchCode) {
+      const targetType = pendingType || existingType || 'farmer';
+      localStorage.setItem('userType', targetType);
+      localStorage.setItem('user_type', targetType);
+      router.push(`/dashboard/${targetType}`);
+    }
+  }, [router]);
+
 
   return (
     <div className="relative min-h-screen bg-[#FDFDFD]">

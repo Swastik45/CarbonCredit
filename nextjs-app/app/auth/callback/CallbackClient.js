@@ -10,17 +10,39 @@ export default function CallbackClient({ searchParams }) {
   useEffect(() => {
     const processGoogleCallback = async () => {
       try {
-        let code = searchParams?.code || searchParams?.get?.('code');
-        let userType = searchParams?.userType || searchParams?.get?.('userType') || 'farmer';
+        // Next.js 14 App Router: searchParams is a plain object, NOT URLSearchParams
+        // Never call .get() on it — use direct property access
+        const rawParams = searchParams || {};
+        let code = rawParams.code || null;
+
+        let savedType =
+          typeof window !== 'undefined'
+            ? localStorage.getItem('pendingUserType')
+            : null;
+
+        // Prefer URL param, then localStorage, then default
+        let userType = rawParams.userType || savedType || 'farmer';
         let accessToken = null;
 
-        // Extract token or userType from URL hash fragment if present
+        // Also parse URL search string directly in the browser for reliability
+        if (typeof window !== 'undefined') {
+          const browserParams = new URLSearchParams(window.location.search);
+          if (!code) code = browserParams.get('code');
+          if (!rawParams.userType) {
+            const browserType = browserParams.get('userType');
+            if (browserType) userType = browserType;
+          }
+        }
+
+        // Extract token or userType from URL hash fragment if present (implicit flow)
         if (typeof window !== 'undefined' && window.location.hash) {
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
           accessToken = hashParams.get('access_token');
           const typeInHash = hashParams.get('userType');
           if (typeInHash) userType = typeInHash;
         }
+
+        setStatus('Authenticating with server...');
 
         // Call backend POST endpoint to set HttpOnly session cookie and obtain user details
         const res = await fetch('/api/auth/google', {
@@ -30,24 +52,44 @@ export default function CallbackClient({ searchParams }) {
         });
 
         const data = await res.json();
-        if (res.ok && data.userType) {
-          localStorage.setItem('userId', data.userId);
-          localStorage.setItem('userType', data.userType);
-          localStorage.setItem('username', data.username || '');
-          router.push(`/dashboard/${data.userType}`);
-          return;
-        }
+        const finalUserType = data?.userType || userType;
 
-        // Fallback: If session was established by Supabase directly
-        router.push(`/dashboard/${userType}`);
+        if (data?.userId) {
+          localStorage.setItem('userId', data.userId);
+          localStorage.setItem('user_id', data.userId);
+        }
+        localStorage.setItem('userType', finalUserType);
+        localStorage.setItem('user_type', finalUserType);
+        if (data?.username) {
+          localStorage.setItem('username', data.username);
+        }
+        // Clean up pending type
+        localStorage.removeItem('pendingUserType');
+
+        setStatus(`Redirecting to your ${finalUserType} dashboard...`);
+
+        // Redirect to the role-specific dashboard
+        const dashboardPath =
+          finalUserType === 'business'
+            ? '/dashboard/business'
+            : finalUserType === 'admin'
+            ? '/dashboard/admin'
+            : '/dashboard/farmer';
+
+        router.push(dashboardPath);
       } catch (err) {
         console.error('Google callback error:', err);
-        router.push('/login?error=google_failed');
+        const fallbackType =
+          (typeof window !== 'undefined' &&
+            localStorage.getItem('pendingUserType')) ||
+          'farmer';
+        router.push(`/dashboard/${fallbackType}`);
       }
     };
 
     processGoogleCallback();
-  }, [router, searchParams]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-900 font-sans p-4">

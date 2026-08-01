@@ -4,10 +4,20 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+/**
+ * Safely read a param from Next.js App Router searchParams (plain object).
+ * Also falls back to parsing window.location.search for full reliability.
+ */
 function getParam(params, key) {
-  if (!params) return null;
-  if (typeof params.get === 'function') return params.get(key);
-  return params[key] || null;
+  // Next.js 14 App Router: searchParams is always a plain object - never URLSearchParams
+  if (params && typeof params === 'object' && key in params) {
+    return params[key] || null;
+  }
+  // Browser fallback: re-parse from the real URL (handles edge cases in shallow rendering)
+  if (typeof window !== 'undefined') {
+    return new URLSearchParams(window.location.search).get(key);
+  }
+  return null;
 }
 
 export default function ConfirmClient({ searchParams }) {
