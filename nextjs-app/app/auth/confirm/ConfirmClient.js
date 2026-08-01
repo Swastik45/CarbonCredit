@@ -36,42 +36,47 @@ export default function ConfirmClient({ searchParams }) {
 
     if (error === 'failed') {
       setStatus('error');
-      setMessage('Email confirmation failed. The link may have expired. Please try registering again.');
+      setMessage('Email confirmation failed. The link may have expired or already been used. Please try logging in or registering again.');
       return;
     }
 
     const confirmEmail = async () => {
-      const token_hash = getParam(searchParams, 'token_hash');
-      const type = getParam(searchParams, 'type');
+      const token_hash = getParam(searchParams, 'token_hash') || getParam(searchParams, 'token');
+      const code = getParam(searchParams, 'code');
+      const type = getParam(searchParams, 'type') || 'signup';
 
-
-      if (!token_hash || type !== 'email') {
+      if (!token_hash && !code) {
         setStatus('error');
         setMessage('Invalid confirmation link');
         return;
       }
 
       try {
-        const response = await fetch('/api/auth/confirm?' + new URLSearchParams({ token_hash, type }));
+        const queryParams = new URLSearchParams();
+        if (token_hash) queryParams.set('token_hash', token_hash);
+        if (code) queryParams.set('code', code);
+        if (type) queryParams.set('type', type);
+
+        const response = await fetch('/api/auth/confirm?' + queryParams.toString());
 
         if (response.redirected) {
           const url = new URL(response.url);
-          const success = url.searchParams.get('success');
-          const error = url.searchParams.get('error');
+          const successRes = url.searchParams.get('success');
+          const errorRes = url.searchParams.get('error');
 
-          if (success === 'true') {
+          if (successRes === 'true') {
             setStatus('success');
-            setMessage('Email confirmed successfully! You can now log in.');
+            setMessage('Email confirmed successfully! Redirecting to login...');
             setTimeout(() => {
               router.push('/login?message=email_confirmed');
-            }, 3000);
-          } else if (error) {
+            }, 2500);
+          } else if (errorRes) {
             setStatus('error');
             setMessage(
-              error === 'invalid_link'
+              errorRes === 'invalid_link'
                 ? 'Invalid confirmation link'
-                : error === 'failed'
-                ? 'Confirmation failed. Please try again.'
+                : errorRes === 'failed'
+                ? 'Confirmation failed. The link may have expired or already been used.'
                 : 'An error occurred'
             );
           }
@@ -89,29 +94,29 @@ export default function ConfirmClient({ searchParams }) {
   }, [router, searchParams]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="max-w-md w-full mx-4">
-        <div className="bg-white rounded-3xl shadow-xl p-8 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-slate-900 font-sans p-4">
+      <div className="max-w-md w-full">
+        <div className="bg-slate-800/90 border border-slate-700/80 rounded-3xl shadow-2xl p-8 text-center backdrop-blur-xl">
           {status === 'loading' && (
             <>
-              <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <h2 className="text-xl font-bold text-slate-900 mb-2">Confirming your email...</h2>
-              <p className="text-slate-600">Please wait while we verify your email address.</p>
+              <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
+              <h2 className="text-2xl font-bold text-white mb-2">Confirming your email...</h2>
+              <p className="text-slate-400 text-sm">Please wait while we verify your account with Supabase.</p>
             </>
           )}
 
           {status === 'success' && (
             <>
-              <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <div className="w-16 h-16 bg-emerald-500/20 border border-emerald-400/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-slate-900 mb-2">Email Confirmed!</h2>
-              <p className="text-slate-600 mb-6">{message}</p>
+              <h2 className="text-2xl font-bold text-white mb-2">Email Confirmed!</h2>
+              <p className="text-slate-300 text-sm mb-8">{message}</p>
               <Link
                 href="/login"
-                className="inline-block bg-emerald-600 text-white font-bold py-3 px-6 rounded-xl hover:bg-emerald-700 transition-colors"
+                className="inline-block w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transition-all"
               >
                 Continue to Login
               </Link>
@@ -120,22 +125,25 @@ export default function ConfirmClient({ searchParams }) {
 
           {status === 'error' && (
             <>
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <div className="w-16 h-16 bg-red-500/20 border border-red-400/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-slate-900 mb-2">Confirmation Failed</h2>
-              <p className="text-slate-600 mb-6">{message}</p>
+              <h2 className="text-2xl font-bold text-white mb-2">Confirmation Failed</h2>
+              <p className="text-slate-300 text-sm mb-8">{message}</p>
               <div className="space-y-3">
                 <Link
+                  href="/login"
+                  className="block w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3.5 px-6 rounded-xl shadow-md transition-all text-sm"
+                >
+                  Log In to Account
+                </Link>
+                <Link
                   href="/register"
-                  className="block bg-slate-100 text-slate-700 font-bold py-3 px-6 rounded-xl hover:bg-slate-200 transition-colors"
+                  className="block text-slate-400 hover:text-slate-200 text-xs font-semibold pt-2"
                 >
                   Try Registering Again
-                </Link>
-                <Link href="/login" className="block text-emerald-600 font-bold hover:text-emerald-700">
-                  Back to Login
                 </Link>
               </div>
             </>
