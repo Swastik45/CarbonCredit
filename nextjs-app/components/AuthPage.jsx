@@ -55,38 +55,45 @@ export default function AuthPage({ initialView = 'login' }) {
     setGoogleLoading(true);
     setError('');
     try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      // Primary: Use server-side endpoint which reads SUPABASE_URL & SUPABASE_SERVICE_ROLE_KEY
+      const res = await fetch(`/api/auth/google?userType=${userType}`);
+      const data = await res.json();
 
-      if (!supabaseUrl || !supabaseAnonKey) {
-        // Fallback or notice if Supabase client env is missing
-        setError('Google OAuth service configuration pending in .env');
-        setGoogleLoading(false);
+      if (res.ok && data?.url) {
+        window.location.href = data.url;
         return;
       }
 
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const redirectTo = `${window.location.origin}/dashboard/${userType}`;
+      // Secondary Fallback: Use client-side NEXT_PUBLIC_ env vars if available
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-      const { error: oauthErr } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo,
-          queryParams: {
-            userType,
+      if (supabaseUrl && supabaseAnonKey) {
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        const redirectTo = `${window.location.origin}/dashboard/${userType}`;
+
+        const { error: oauthErr } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo,
+            queryParams: { userType },
           },
-        },
-      });
+        });
 
-      if (oauthErr) {
-        setError(oauthErr.message || 'Failed to initiate Google OAuth');
+        if (oauthErr) {
+          setError(oauthErr.message || 'Failed to initiate Google OAuth');
+        }
+        return;
       }
+
+      setError(data.error || 'Google OAuth is not configured on Supabase. Ensure Google Provider is enabled in your Supabase Dashboard under Authentication -> Providers.');
     } catch (err) {
-      setError('Google sign-in error');
+      setError('Google sign-in error. Please try again.');
     } finally {
       setGoogleLoading(false);
     }
   };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
