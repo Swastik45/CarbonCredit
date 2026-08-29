@@ -8,9 +8,12 @@ import { attachSessionCookie } from '@/lib/authSession';
  */
 export async function POST(request) {
   const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
-    return NextResponse.json({ error: 'Auth service not configured' }, { status: 500 });
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+  if (!url || !anonKey) {
+    return NextResponse.json(
+      { error: 'Auth service not configured (missing SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY)' },
+      { status: 500 }
+    );
   }
 
   let body;
@@ -20,11 +23,12 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const { accessToken, newPassword } = body;
+  const { accessToken, tokenHash, newPassword } = body;
+  const recoveryToken = tokenHash || accessToken;
 
-  if (!accessToken || !newPassword) {
+  if (!recoveryToken || !newPassword) {
     return NextResponse.json(
-      { error: 'Access token and new password are required' },
+      { error: 'Recovery token and new password are required' },
       { status: 400 }
     );
   }
@@ -36,12 +40,39 @@ export async function POST(request) {
     );
   }
 
-  // Use the access_token from the reset email link to authenticate the update
-  const supabase = createClient(url, key, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-  });
-
   try {
+    const supabase = createClient(url, anonKey);
+
+    let sessionData = null;
+
+    if (tokenHash) {
+      const verifyResult = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: 'recovery',
+      });
+
+      if (verifyResult.error || !verifyResult.data?.session) {
+        console.error('Recovery verification failed:', verifyResult.error);
+        return NextResponse.json(
+          { error: 'This reset link has expired or is invalid. Please request a new password reset email.' },
+          { status: 400 }
+        );
+      }
+
+      sessionData = verifyResult.data.session;
+      supabase.auth.setSession(sessionData);
+    } else if (accessToken) {
+      const { data: userData, error: userError } = await supabase.auth.getUser(accessToken);
+      if (userError || !userData?.user) {
+        console.error('Recovery token validation failed:', userError);
+        return NextResponse.json(
+          { error: 'This reset link has expired or is invalid. Please request a new password reset email.' },
+          { status: 400 }
+        );
+      }
+      sessionData = { access_token: accessToken };
+    }
+
     const { data, error } = await supabase.auth.updateUser({ password: newPassword });
 
     if (error) {
@@ -52,11 +83,9 @@ export async function POST(request) {
       );
     }
 
-    // Invalidate old sessions by signing out from all devices (optional security hardening)
-    // Then return success with a fresh session cookie
     const response = NextResponse.json({
       message: 'Password updated successfully. You can now log in with your new password.',
-      userId: data.user?.id,
+      userId: data.user?.id || sessionData?.user?.id,
     });
 
     return response;

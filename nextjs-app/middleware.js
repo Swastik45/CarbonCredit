@@ -22,20 +22,21 @@ const ROLE_ROUTES = {
 export function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  // Read session cookie
-  const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)?.value || null;
+  const cookieToken = request.cookies.get(SESSION_COOKIE_NAME)?.value || null;
+  const authHeader = request.headers.get('authorization') || '';
+  const bearerToken = authHeader.toLowerCase().startsWith('bearer ')
+    ? authHeader.slice(7).trim()
+    : null;
+  const sessionToken = cookieToken || bearerToken;
 
-  // Check if route is protected
   const isProtected = PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
 
-  // Redirect unauthenticated users to login
   if (isProtected && !sessionToken) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Allow all other routes to pass through
   return NextResponse.next();
 }
 

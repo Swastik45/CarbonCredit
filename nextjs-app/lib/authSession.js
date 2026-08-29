@@ -19,14 +19,18 @@ export function getSessionCookieOptions(maxAge = SESSION_MAX_AGE_SECONDS) {
  * @returns {string|null}
  */
 export function readSessionToken(request) {
-  // Check cookies standard Next.js request
+  if (!request) return null;
+
+  // Next.js request objects expose cookies directly.
   if (request.cookies && typeof request.cookies.get === 'function') {
     const cookie = request.cookies.get(SESSION_COOKIE_NAME);
     if (cookie?.value) return cookie.value;
   }
 
-  // Fallback to Cookie header parsing
-  const cookieHeader = request.headers.get('cookie') || '';
+  const headers = request.headers || request;
+
+  // Parse a raw Cookie header when the request is a plain Request/Headers object.
+  const cookieHeader = headers.get?.('cookie') || headers.cookie || '';
   for (const part of cookieHeader.split(';')) {
     const trimmed = part.trim();
     if (trimmed.startsWith(`${SESSION_COOKIE_NAME}=`)) {
@@ -34,10 +38,11 @@ export function readSessionToken(request) {
     }
   }
 
-  // Fallback to Bearer token header
-  const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    return authHeader.split(' ')[1];
+  // Fallback to Bearer auth token header.
+  const authHeader = headers.get?.('authorization') || headers.get?.('Authorization') || headers.authorization || headers.Authorization;
+  if (typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')) {
+    const token = authHeader.slice(7).trim();
+    return token || null;
   }
 
   return null;

@@ -14,35 +14,41 @@ export default function ResetPasswordPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Supabase password reset sends the token in the URL hash: #access_token=...&type=recovery
     if (typeof window === 'undefined') return;
 
-    const hash = window.location.hash;
-    if (hash) {
-      const params = new URLSearchParams(hash.substring(1));
-      const token = params.get('access_token');
-      const type = params.get('type');
+    const parseRecoveryParams = (raw) => {
+      if (!raw) return null;
+      const params = new URLSearchParams(raw.startsWith('#') ? raw.slice(1) : raw);
+      return {
+        tokenHash: params.get('token_hash') || params.get('token_hash') || params.get('token'),
+        accessToken: params.get('access_token') || params.get('accessToken'),
+        type: params.get('type'),
+        code: params.get('code'),
+      };
+    };
 
-      if (token && type === 'recovery') {
-        setAccessToken(token);
-        return;
-      }
+    const hashData = parseRecoveryParams(window.location.hash);
+    if ((hashData?.accessToken && (hashData.type === 'recovery' || !hashData.type)) || (hashData?.tokenHash && (hashData.type === 'recovery' || !hashData.type))) {
+      setAccessToken(hashData.accessToken || hashData.tokenHash);
+      return;
     }
 
-    // Also check search params (some Supabase versions use query params)
-    const searchParams = new URLSearchParams(window.location.search);
-    const code = searchParams.get('code');
-    if (code) {
-      // Exchange code for token via Supabase
-      fetch('/api/auth/confirm?code=' + code + '&type=recovery')
+    const searchData = parseRecoveryParams(window.location.search);
+    if ((searchData?.accessToken && (searchData.type === 'recovery' || !searchData.type)) || (searchData?.tokenHash && (searchData.type === 'recovery' || !searchData.type))) {
+      setAccessToken(searchData.accessToken || searchData.tokenHash);
+      return;
+    }
+
+    if (searchData?.code && searchData.type === 'recovery') {
+      fetch('/api/auth/confirm?code=' + encodeURIComponent(searchData.code) + '&type=recovery')
         .then(() => {
-          // After confirm, the hash will be set; re-check
-          const h = window.location.hash;
-          if (h) {
-            const p = new URLSearchParams(h.substring(1));
-            const t = p.get('access_token');
-            if (t) setAccessToken(t);
+          const nextHashData = parseRecoveryParams(window.location.hash);
+          const recoveredToken = nextHashData?.accessToken || nextHashData?.tokenHash;
+          if (recoveredToken) {
+            setAccessToken(recoveredToken);
+            return;
           }
+          setStatus('invalid');
         })
         .catch(() => setStatus('invalid'));
       return;
@@ -68,10 +74,16 @@ export default function ResetPasswordPage() {
     setStatus('loading');
 
     try {
+      const payload = {
+        accessToken,
+        newPassword,
+        tokenHash: accessToken && accessToken.includes('.') ? null : accessToken,
+      };
+
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken, newPassword }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();

@@ -12,11 +12,13 @@ export function getAuthFromHeaders(headers) {
 export async function requireAuth(reqOrHeaders, expectedType = null) {
   let token = null;
 
-  // Support receiving Request object or Headers object
-  if (reqOrHeaders && typeof reqOrHeaders.headers === 'object') {
-    token = readSessionToken(reqOrHeaders);
-  } else if (reqOrHeaders && typeof reqOrHeaders.get === 'function') {
-    token = getAuthFromHeaders(reqOrHeaders);
+  // Support receiving Request object, Headers object, or plain object wrappers.
+  if (reqOrHeaders) {
+    if (typeof reqOrHeaders.headers === 'object' || typeof reqOrHeaders.cookies === 'object') {
+      token = readSessionToken(reqOrHeaders);
+    } else if (typeof reqOrHeaders.get === 'function') {
+      token = getAuthFromHeaders(reqOrHeaders);
+    }
   }
 
   if (!token) {
