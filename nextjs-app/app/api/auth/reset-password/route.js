@@ -74,7 +74,18 @@ export async function POST(request) {
       sessionData = { access_token: accessToken };
     }
 
-    const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+    const userId = sessionData?.user?.id || (await supabase.auth.getUser((sessionData?.access_token || recoveryToken))).then(({ data }) => data.user?.id).catch(() => null);
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'This reset link has expired or is invalid. Please request a new password reset email.' },
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await supabase.auth.admin.updateUserById(userId, {
+      password: newPassword,
+    });
 
     if (error) {
       console.error('Password update error:', error);
@@ -86,7 +97,7 @@ export async function POST(request) {
 
     const response = NextResponse.json({
       message: 'Password updated successfully. You can now log in with your new password.',
-      userId: data.user?.id || sessionData?.user?.id,
+      userId: data.user?.id || userId,
     });
 
     return response;
