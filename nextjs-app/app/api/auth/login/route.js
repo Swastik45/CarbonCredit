@@ -34,10 +34,23 @@ export async function POST(request) {
   const supabaseServer = createClient(url, key);
 
   try {
-    // Try username lookup first; fall back to email lookup so users can log in with either
-    let user = await db.users.findByUsername(username);
+    let user = null;
+
+    try {
+      // Try username lookup first; fall back to email lookup so users can log in with either
+      user = await db.users.findByUsername(username);
+    } catch (lookupError) {
+      console.error('Username lookup failed:', lookupError);
+      user = null;
+    }
+
     if (!user && username.includes('@')) {
-      user = await db.users.findByEmail(username);
+      try {
+        user = await db.users.findByEmail(username);
+      } catch (emailLookupError) {
+        console.error('Email lookup failed:', emailLookupError);
+        user = null;
+      }
     }
 
     if (!user || !user.email) {
@@ -81,8 +94,9 @@ export async function POST(request) {
 
     return attachSessionCookie(response, data.session.access_token);
   } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json({ error: 'Login failed' }, { status: 500 });
+    const message = error?.message || 'Unknown login error';
+    console.error('Login error:', message, error);
+    return NextResponse.json({ error: `Login failed: ${message}` }, { status: 500 });
   }
 }
 
