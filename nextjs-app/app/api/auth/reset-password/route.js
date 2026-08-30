@@ -8,10 +8,11 @@ import { attachSessionCookie } from '@/lib/authSession';
  */
 export async function POST(request) {
   const url = process.env.SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-  if (!url || !anonKey) {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
     return NextResponse.json(
-      { error: 'Auth service not configured (missing SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY)' },
+      { error: 'Auth service not configured (missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)' },
       { status: 500 }
     );
   }
@@ -41,7 +42,7 @@ export async function POST(request) {
   }
 
   try {
-    const supabase = createClient(url, anonKey);
+    const supabase = createClient(url, key);
 
     let sessionData = null;
 

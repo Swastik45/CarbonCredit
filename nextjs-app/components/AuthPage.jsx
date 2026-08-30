@@ -124,20 +124,6 @@ export default function AuthPage({ initialView = 'login' }) {
         return;
       }
 
-      // Client-side fallback using NEXT_PUBLIC_ env vars
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      if (supabaseUrl && supabaseAnonKey) {
-        const supabase = createClient(supabaseUrl, supabaseAnonKey);
-        const redirectTo = `${window.location.origin}/auth/callback?userType=${userType}`;
-        const { error: oauthErr } = await supabase.auth.signInWithOAuth({
-          provider: 'google',
-          options: { redirectTo, queryParams: { userType } },
-        });
-        if (oauthErr) setError(oauthErr.message || 'Failed to initiate Google sign-in');
-        return;
-      }
-
       setError(
         data.error ||
           'Google sign-in not configured. Enable Google in Supabase → Authentication → Providers.'
