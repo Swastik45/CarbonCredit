@@ -44,6 +44,7 @@ export async function POST(request) {
   try {
     const supabase = createClient(url, key);
 
+    let userId = null;
     let sessionData = null;
 
     if (tokenHash) {
@@ -52,7 +53,7 @@ export async function POST(request) {
         type: 'recovery',
       });
 
-      if (verifyResult.error || !verifyResult.data?.session) {
+      if (verifyResult.error || !verifyResult.data?.session || !verifyResult.data?.user) {
         console.error('Recovery verification failed:', verifyResult.error);
         return NextResponse.json(
           { error: 'This reset link has expired or is invalid. Please request a new password reset email.' },
@@ -60,6 +61,7 @@ export async function POST(request) {
         );
       }
 
+      userId = verifyResult.data.user.id;
       sessionData = verifyResult.data.session;
       supabase.auth.setSession(sessionData);
     } else if (accessToken) {
@@ -71,10 +73,10 @@ export async function POST(request) {
           { status: 400 }
         );
       }
+
+      userId = userData.user.id;
       sessionData = { access_token: accessToken };
     }
-
-    const userId = sessionData?.user?.id || (await supabase.auth.getUser((sessionData?.access_token || recoveryToken))).then(({ data }) => data.user?.id).catch(() => null);
 
     if (!userId) {
       return NextResponse.json(
