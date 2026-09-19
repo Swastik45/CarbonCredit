@@ -1,0 +1,129 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  FARMER
+  BUSINESS
+  USER
+  COMPANY
+  AUDITOR
+}
+
+enum PlantationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id                    String   @id @default(cuid())
+  email                 String   @unique
+  passwordHash          String
+  name                  String
+  companyName           String?
+  role                  Role     @default(USER)
+  isActive              Boolean  @default(true)
+  kycVerified           Boolean  @default(false)
+  citizenshipId         String?
+  taxId                 String?
+  otpCodeHash           String?
+  otpPreviousCodeHash   String?
+  otpExpiresAt          DateTime?
+  resetOtpHash          String?
+  resetOtpExpiresAt     DateTime?
+  carbonCredits         Float    @default(0.0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  plantations           Plantation[]
+  purchases             CarbonPurchase[]
+  transactions          CarbonTransaction[]
+
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
+}
+
+model Plantation {
+  id                   String           @id @default(cuid())
+  farmerId             String
+  title                String
+  description          String           @db.Text
+  locationName         String
+  latitude             Float
+  longitude            Float
+  areaHectares         Float
+  treeSpecies          String
+  treeCount            Int              @default(0)
+  landParcelId         String?          // Cadastral Land Parcel Title / Lalpurja Registration #
+  isOwnershipVerified  Boolean          @default(false) // Verified Land Ownership Status
+  rejectionReason      String?          @db.Text
+  status               PlantationStatus @default(PENDING)
+  documentUrl          String?          // Uploaded Official Land Title Certificate Document URL
+  boundaryGeoJson      String?          @db.Text // GPS Boundary Polygon coordinates
+  ndviScore            Float            @default(0.0)
+  creditsIssued        Float            @default(0.0)
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  farmer               User             @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  purchases            CarbonPurchase[]
+  transactions         CarbonTransaction[]
+
+  @@index([farmerId])
+  @@index([status])
+  @@index([landParcelId])
+  @@index([createdAt])
+}
+
+model CarbonPurchase {
+  id             String         @id @default(cuid())
+  receiptNumber  String         @unique @default(cuid())
+  businessId     String
+  plantationId   String
+  creditsCount   Float
+  pricePerCredit Float
+  totalPrice     Float
+  status         PurchaseStatus @default(COMPLETED)
+  createdAt      DateTime       @default(now())
+
+  business       User           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  plantation     Plantation     @relation(fields: [plantationId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([plantationId])
+  @@index([receiptNumber])
+}
+
+model CarbonTransaction {
+  id              String     @id @default(cuid())
+  userId          String
+  plantationId    String?
+  credits         Float      @default(0.0)
+  amount          Float      @default(0.0)
+  totalPrice      Float      @default(0.0)
+  type            String     @default("PURCHASE")
+  transactionType String     @default("PURCHASE")
+  certificateUrl  String?
+  description     String?
+  createdAt       DateTime   @default(now())
+
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plantation      Plantation? @relation(fields: [plantationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
