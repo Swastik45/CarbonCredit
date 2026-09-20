@@ -131,38 +131,24 @@ Optional: `ENABLE_REDIS=true`, `REDIS_URL`
 2. Set env vars → redeploy Production
 3. Point Supabase Auth URL config at your Vercel domain if needed
 
-## UI preview
+## Screenshots
 
-The screens below are the **frontend** for the APIs and database above — same forest/portal design system across auth, dashboard, map, and farmer tools.
+Frontend for the APIs and database above — same portal design across auth, dashboard, map, and farmer tools.
 
-<details>
-<summary>Show screenshots</summary>
+| Landing | Login |
+|:-------:|:-----:|
+| ![Landing](docs/screenshots/01-landing.png) | ![Login](docs/screenshots/02-login.png) |
+| 3D forest field guide | JWT + OTP sign-in |
 
-**Landing (Three.js field guide)**
+| Dashboard | NDVI guide |
+|:---------:|:----------:|
+| ![Dashboard](docs/screenshots/03-dashboard.png) | ![NDVI](docs/screenshots/04-ndvi-guide.png) |
+| Role portal + live DB metrics | Formula + sequestration simulator |
 
-![Landing](docs/screenshots/01-landing.png)
-
-**Login (JWT + OTP auth)**
-
-![Login](docs/screenshots/02-login.png)
-
-**Dashboard (role portal over live DB metrics)**
-
-![Dashboard](docs/screenshots/03-dashboard.png)
-
-**NDVI guide (formula + sequestration simulator)**
-
-![NDVI](docs/screenshots/04-ndvi-guide.png)
-
-**Satellite map (Leaflet + Esri, reverse geocode audit)**
-
-![Map](docs/screenshots/05-satellite-map.png)
-
-**Farmer portal (writes plantations via API)**
-
-![Farmer](docs/screenshots/06-farmer-portal.png)
-
-</details>
+| Satellite map | Farmer portal |
+|:-------------:|:-------------:|
+| ![Map](docs/screenshots/05-satellite-map.png) | ![Farmer](docs/screenshots/06-farmer-portal.png) |
+| Leaflet + Esri reverse-geocode audit | Plot registration → `POST /api/plantations` |
 
 ## Notes
 
