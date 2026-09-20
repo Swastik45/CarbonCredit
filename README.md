@@ -72,8 +72,8 @@ Fill in:
 |----------|---------|
 | `DATABASE_URL` | Pooled Postgres URL (app queries) |
 | `DIRECT_URL` | Direct Postgres URL (Prisma migrate / push) |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_ANON_KEY` | Supabase anon key |
 | `JWT_SECRET` | Secret for signed session cookies |
 | `SMTP_HOST` | SMTP host (e.g. `smtp.gmail.com`) |
 | `SMTP_PORT` | SMTP port (e.g. `587`) |
