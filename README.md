@@ -102,7 +102,7 @@ Or use migrations against your Supabase project if you prefer a migration histor
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [https://carbon-credit1.vercel.app/](https://carbon-credit1.vercel.app/).
 
 ## Scripts
 
