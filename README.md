@@ -1,186 +1,175 @@
 # Carbon Credit
 
-**Carbon Credit Exchange & Management** — a satellite-verified marketplace where farmers register reforestation plots, admins audit land ownership with NDVI science, and businesses purchase transparent carbon offsets.
+Full-stack **carbon credit exchange** — not a static demo.
 
-Walk through the forest. Find the signals. Build something that lasts.
+Farmers register reforestation land in Postgres, admins verify ownership and NDVI via API workflows, and businesses purchase audited offsets with persisted ledgers and certificates. Built as a **Next.js App Router** app with **Prisma + Supabase PostgreSQL**, **JWT sessions**, and **Nodemailer OTP**.
 
-## Screenshots
+**Live:** [carbon-credit1.vercel.app](https://carbon-credit1.vercel.app/) · **Repo:** [Swastik45/CarbonCredit](https://github.com/Swastik45/CarbonCredit)
 
-### Interactive landing — living ledger
+## Architecture
 
-Immersive Three.js forest field guide. Scroll through the canopy to enter the platform.
+```
+Browser (React UI)
+    │
+    ▼
+Next.js API routes  ──JWT cookie──► Auth / sessions
+    │
+    ├── Prisma ORM ──► PostgreSQL (Supabase)
+    ├── Nodemailer ──► OTP / password reset email
+    └── Optional Redis ──► rate-limit / cache (LRU fallback)
+```
 
-![Landing page — Enter the living ledger](docs/screenshots/01-landing.png)
+| Layer | What it does |
+|-------|----------------|
+| **API** | REST handlers under `src/app/api/**` for auth, plantations, admin verify, purchases, certificates, stats |
+| **Database** | Prisma models: `User`, `Plantation`, `CarbonPurchase`, `CarbonTransaction` on Supabase Postgres |
+| **Auth** | Signup → email OTP → login; bcrypt passwords; signed httpOnly JWT cookies |
+| **Business logic** | Role checks (farmer / admin / business), NDVI + credit issuance, purchase ledger |
+| **UI** | Portal pages that call those APIs — screenshots below are the frontend *of* this stack |
 
-### Sign in
+## Backend capabilities
 
-Forest-backed auth portal for farmers, businesses, and administrators.
+- **Auth API** — signup, login, logout, me, verify/resend OTP, forgot/reset password
+- **Plantations API** — create/list plots with GPS, Lalpurja parcel ID, docs, species, area
+- **Admin verify API** — approve/reject with NDVI score → issue `creditsIssued` into the DB
+- **Business purchases API** — buy verified credits, write purchase + transaction rows
+- **Certificates API** — generate/serve audit certificates for verified plots
+- **Stats API** — platform aggregates for dashboards
+- **Geo helpers** — reverse geocoding / location match audit for map markers
 
-![Login page](docs/screenshots/02-login.png)
+## Roles & data flow
 
-### Account portal / dashboard
-
-Role-aware dashboard with credit balance, reforested area, verified plots, pending approvals, search, and land-ownership audit tools.
-
-![Admin dashboard](docs/screenshots/03-dashboard.png)
-
-### NDVI verification guide
-
-Educational modal with the NDVI formula, reference scale, and an interactive sequestration simulator (`NDVI = (NIR − RED) / (NIR + RED)`).
-
-![NDVI Satellite Verification Guide](docs/screenshots/04-ndvi-guide.png)
-
-### Satellite map
-
-Leaflet map with Esri World Imagery and OpenStreetMap layers, reverse geocoding, and location match audit for plantation markers.
-
-![Sentinel & Esri satellite map](docs/screenshots/05-satellite-map.png)
-
-### Farmer plot portal
-
-Register plantation plots with Lalpurja / land title parcel IDs, GPS coordinates, species, and document URLs for satellite auditing.
-
-![Farmer plantation registration](docs/screenshots/06-farmer-portal.png)
-
-## What it does
-
-| Role | Workflow |
-|------|----------|
-| **Farmer** | Register plots (parcel ID, coords, docs) → track verification → earn credits |
-| **Admin** | Audit ownership → set NDVI → approve/reject → issue credits |
-| **Business** | Browse verified listings → purchase offsets → ledger & certificates |
-
-## Features
-
-- Immersive **3D forest landing** (Three.js)
-- **JWT auth** with email OTP, password reset, httpOnly cookies
-- **Land ownership audit** (Lalpurja / parcel ID + document links)
-- **NDVI guide & calculator** for sequestration estimates
-- **Esri / OSM satellite map** with reverse geocoding
-- Role dashboards: farmer plots, admin workbench, business marketplace
-- Carbon purchase ledger and downloadable certificates
+| Role | Server-side workflow |
+|------|----------------------|
+| **Farmer** | `POST /api/plantations` → status `PENDING` → wait for admin → credits written on verify |
+| **Admin** | `POST /api/admin/verify` → ownership + NDVI → `VERIFIED` / `REJECTED` + credit issuance |
+| **Business** | `POST /api/business/purchases` → decrement available credits → ledger + receipt |
 
 ## Tech stack
 
 | Layer | Tools |
 |-------|--------|
-| App | Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS |
-| Database | PostgreSQL (Supabase) + Prisma |
-| Auth | JWT, bcrypt, httpOnly cookies |
-| Email | Nodemailer (OTP / password reset) |
-| Maps / 3D | Leaflet, Esri imagery, Three.js |
-| Cache | Optional Redis (`ioredis`) + in-memory LRU fallback |
+| Runtime | Next.js 14 (App Router) — pages **and** API routes |
+| Language | TypeScript, React 18 |
+| Database | PostgreSQL (Supabase) + Prisma 5 |
+| Auth | `jsonwebtoken`, `bcryptjs`, httpOnly cookies |
+| Email | Nodemailer |
+| Maps / 3D | Leaflet + Esri tiles, Three.js landing |
+| Cache | Optional `ioredis` + in-memory LRU |
+| Deploy | Vercel + Supabase |
 
 ## Project structure
 
 ```
-src/
-  app/           # Pages + API routes
-  components/    # Maps, modals, forest scene, shared UI
-  lib/           # Auth, DB, Redis, email helpers
-prisma/          # Schema
-public/          # Static assets
-docs/screenshots # README images
+src/app/api/          # Backend: auth, plantations, admin, business, certificates, stats
+src/app/*/page.tsx    # Frontend routes that consume those APIs
+src/lib/              # dbconnect, auth/session, email, redis, geoVerification
+prisma/schema.prisma  # Source of truth for DB models & enums
 ```
 
-## Routes
+## API reference
 
-| Path | Description |
-|------|-------------|
-| `/` | 3D forest landing |
-| `/login`, `/signup` | Authentication |
-| `/dashboard` | Role-based account portal |
-| `/farmer` | Plantation registration workbench |
-| `/map` | Full-screen satellite map |
-| `/ndvi-guide` | NDVI education / calculator |
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | `/api/auth/signup` | Create user + send OTP |
+| POST | `/api/auth/verify-otp` | Confirm email |
+| POST | `/api/auth/login` | Issue session cookie |
+| POST | `/api/auth/logout` | Clear session |
+| GET | `/api/auth/me` | Current user from JWT |
+| POST | `/api/auth/forgot-password` / `reset-password` | Password recovery |
+| GET/POST | `/api/plantations` | List / register plots |
+| POST | `/api/admin/verify` | Approve or reject + NDVI / credits |
+| GET/POST | `/api/business/purchases` | Marketplace purchases + history |
+| GET | `/api/certificates/[id]` | Certificate for verified plot |
+| GET | `/api/stats` | Platform statistics |
+
+## Data model (Prisma)
+
+- **User** — email, password hash, role, OTP/reset fields, `carbonCredits`
+- **Plantation** — farmer FK, GPS, parcel ID, docs, `ndviScore`, `status` (`PENDING` \| `VERIFIED` \| `REJECTED`), `creditsIssued`
+- **CarbonPurchase** — business ↔ plantation purchase record
+- **CarbonTransaction** — ledger / certificate trail
 
 ## Getting started
 
 ### Prerequisites
 
 - Node.js 18+
-- A Supabase (or other PostgreSQL) project
-- SMTP credentials (optional — OTPs print to the server console if unset)
-
-### 1. Install
+- Supabase Postgres (or any Postgres)
+- SMTP optional (without it, OTPs log to the server console)
 
 ```bash
 npm install
-```
-
-`postinstall` runs `prisma generate` automatically.
-
-### 2. Environment
-
-```bash
-cp .env.example .env
+cp .env.example .env   # fill DATABASE_URL, DIRECT_URL, JWT_SECRET, etc.
+npx prisma db push     # sync schema to Postgres
+npm run dev            # http://localhost:3000
 ```
 
 | Variable | Purpose |
 |----------|---------|
-| `DATABASE_URL` | Pooled Postgres URL (port 6543, `?pgbouncer=true`) |
-| `DIRECT_URL` | Direct / session Postgres URL (port 5432) |
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_ANON_KEY` | Supabase anon key |
-| `JWT_SECRET` | Secret for signed session cookies |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Outbound email |
+| `DATABASE_URL` | Pooled Postgres (port 6543, `?pgbouncer=true`) |
+| `DIRECT_URL` | Session/direct Postgres (port 5432) for Prisma |
+| `SUPABASE_URL` / `SUPABASE_ANON_KEY` | Supabase project (server-side) |
+| `JWT_SECRET` | Signs session cookies |
+| `SMTP_*` | OTP / reset email |
 
 Optional: `ENABLE_REDIS=true`, `REDIS_URL`
 
-> On Vercel, paste env values **without** wrapping quotes. Prefer `SUPABASE_*` (not `NEXT_PUBLIC_*`) so secrets can be saved as private.
-
-### 3. Database
-
-```bash
-npx prisma db push
-```
-
-### 4. Run
-
-```bash
-npm run dev
-```
-
-Open [https://carbon-credit1.vercel.app/](https://carbon-credit1.vercel.app/).
+> On Vercel: paste values **without** quotes. Use `SUPABASE_*` (not `NEXT_PUBLIC_*`) so env saves aren’t blocked.
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Development server |
-| `npm run build` | Production build |
-| `npm start` | Serve production build |
+| `npm run dev` | Local full stack (UI + API) |
+| `npm run build` / `npm start` | Production |
 | `npm run lint` | ESLint |
 
-## API overview
+## Deploy
 
-- **Auth** — `/api/auth/signup`, `login`, `logout`, `me`, `verify-otp`, `resend-otp`, `forgot-password`, `reset-password`
-- **Plantations** — `/api/plantations`
-- **Admin** — `/api/admin/verify`
-- **Business** — `/api/business/purchases`
-- **Other** — `/api/stats`, `/api/certificates/[id]`
+1. Connect this repo on Vercel (root = `.`)
+2. Set env vars → redeploy Production
+3. Point Supabase Auth URL config at your Vercel domain if needed
 
-## Data model (Prisma)
+## UI preview
 
-- **User** — identity, role, OTP/reset hashes, credit balance
-- **Plantation** — GPS, parcel ID, docs, NDVI, status, credits issued
-- **CarbonPurchase** — business purchases against plantations
-- **CarbonTransaction** — ledger / certificate trail
+The screens below are the **frontend** for the APIs and database above — same forest/portal design system across auth, dashboard, map, and farmer tools.
 
-## Deploy (Vercel)
+<details>
+<summary>Show screenshots</summary>
 
-1. Connect [Swastik45/CarbonCredit](https://github.com/Swastik45/CarbonCredit)
-2. Set env vars (no quotes; Root Directory = `.`)
-3. Push to `main` or redeploy Production
-4. In Supabase → Authentication → URL Configuration, add your Vercel domain
+**Landing (Three.js field guide)**
+
+![Landing](docs/screenshots/01-landing.png)
+
+**Login (JWT + OTP auth)**
+
+![Login](docs/screenshots/02-login.png)
+
+**Dashboard (role portal over live DB metrics)**
+
+![Dashboard](docs/screenshots/03-dashboard.png)
+
+**NDVI guide (formula + sequestration simulator)**
+
+![NDVI](docs/screenshots/04-ndvi-guide.png)
+
+**Satellite map (Leaflet + Esri, reverse geocode audit)**
+
+![Map](docs/screenshots/05-satellite-map.png)
+
+**Farmer portal (writes plantations via API)**
+
+![Farmer](docs/screenshots/06-farmer-portal.png)
+
+</details>
 
 ## Notes
 
-- Without SMTP, verification OTPs are logged in the terminal.
-- Redis is off by default; rate limiting uses an in-memory LRU cache.
-- Reverse geocoding uses OpenStreetMap Nominatim where needed.
-- Admin allowlist lives in `src/lib/adminBypass.ts`.
+- SMTP unset → OTPs print in the server terminal
+- Redis off by default → LRU rate-limit fallback
+- Admin allowlist: `src/lib/adminBypass.ts`
 
 ## License
 
-Private project (`"private": true` in `package.json`).
+Private (`"private": true` in `package.json`).
