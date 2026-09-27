@@ -104,12 +104,11 @@ export default function RealLeafletMap({ plantations, onSelectPlot }: RealLeafle
           }`}
         >
           {/* Top Layer Indicator */}
-          <div className="flex items-center justify-between text-xs text-carbon-300 z-10">
-            <span className="px-3 py-1 rounded-full bg-darkbg-900/90 border border-carbon-500/30 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Layer: {mapType === 'SATELLITE' ? 'Esri World Imagery (High-Res)' : 'OpenStreetMap Vector'}</span>
+          <div className="flex items-center justify-between text-xs z-10 opacity-80">
+            <span className="portal-status-line">
+              Layer <strong>{mapType === 'SATELLITE' ? 'Esri Imagery' : 'OpenStreetMap'}</strong>
             </span>
-            <span className="font-mono text-carbon-400">EPSG:4326 WGS84</span>
+            <span className="font-mono opacity-60">EPSG:4326</span>
           </div>
 
           {/* Interactive Plot Grid Items */}
@@ -123,17 +122,17 @@ export default function RealLeafletMap({ plantations, onSelectPlot }: RealLeafle
                     setActivePlot(plot);
                     if (onSelectPlot) onSelectPlot(plot);
                   }}
-                  className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
+                  className={`p-4 border transition-all cursor-pointer flex flex-col justify-between ${
                     isSelected
-                      ? 'bg-carbon-950 border-carbon-400 shadow-xl shadow-carbon-500/20 scale-[1.03]'
-                      : 'bg-darkbg-900/90 border-carbon-500/20 hover:border-carbon-500/60 hover:bg-darkbg-900'
+                      ? 'bg-black/40 border-[#ff9d6c]/50 shadow-xl scale-[1.02]'
+                      : 'bg-black/25 border-white/10 hover:border-[#ffab86]/40'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getStatusColor(plot.status)}`}>
-                      {plot.status}
+                    <span className="portal-status-line">
+                      <strong>{plot.status}</strong>
                     </span>
-                    <MapPin className={`w-4 h-4 ${plot.status === 'VERIFIED' ? 'text-emerald-400' : 'text-amber-400'}`} />
+                    <MapPin className={`w-4 h-4 ${plot.status === 'VERIFIED' ? 'text-emerald-400' : 'text-amber-300'}`} />
                   </div>
 
                   <div>
@@ -170,11 +169,11 @@ export default function RealLeafletMap({ plantations, onSelectPlot }: RealLeafle
         <div className="glass-panel-glow p-6 rounded-2xl border border-carbon-500/30 flex flex-col justify-between">
           {activePlot ? (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className={`text-xs font-bold px-3 py-1 rounded-full border ${getStatusColor(activePlot.status)}`}>
-                  {activePlot.status}
+              <div className="space-y-2">
+                <span className="portal-status-line">
+                  Status <strong>{activePlot.status}</strong>
                 </span>
-                <span className="text-xs text-carbon-400 font-mono">Plot #{activePlot.id.slice(-6)}</span>
+                <span className="text-xs opacity-55 font-mono block">Plot #{activePlot.id.slice(-6)}</span>
               </div>
 
               <div>

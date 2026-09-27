@@ -23,49 +23,50 @@ export async function evaluatePlantationScamRisk(params: {
   const lat = params.latitude;
   const lng = params.longitude;
 
-  // 1. Coordinate Validity Check
   if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-    flags.push('CRITICAL: Invalid GPS coordinates outside Earth physical bounds.');
+    flags.push('GPS numbers are invalid — not a real place on Earth.');
     riskPoints += 60;
   }
 
-  // 2. Null Island / Default Coordinate Detection (0, 0)
   if (Math.abs(lat) < 0.01 && Math.abs(lng) < 0.01) {
-    flags.push('CRITICAL: Coordinates pointing to Null Island (0,0 ocean). Likely default/fake entry.');
+    flags.push('GPS is at 0,0 in the ocean. That usually means a fake or empty entry.');
     riskPoints += 80;
   }
 
-  // 3. Real Reverse Geocoding & Geographic Match Validation
   let actualAddress = '';
   if (!isNaN(lat) && !isNaN(lng) && (Math.abs(lat) > 0.01 || Math.abs(lng) > 0.01)) {
     const geoResult: ReverseGeocodeResult = await reverseGeocodeCoordinates(lat, lng, params.locationName);
     actualAddress = geoResult.address;
 
     if (!geoResult.isMatch) {
-      flags.push(`GEOGRAPHIC MISMATCH: ${geoResult.mismatchReason || 'Coordinates do not match claimed place.'}`);
-      riskPoints += 45;
+      flags.push(
+        geoResult.mismatchReason ||
+          `Typed place “${params.locationName}” does not match where the GPS pin sits.`
+      );
+      riskPoints += geoResult.matchLevel === 'unknown' ? 30 : 55;
+    } else if (geoResult.matchLevel === 'province') {
+      flags.push('Only the province matches — city or district name does not line up with the pin.');
+      riskPoints += 15;
     }
   }
 
-  // 4. Tree Density Reality Check (Hectares vs Tree Count)
   if (params.areaHectares > 0 && params.treeCount && params.treeCount > 0) {
     const density = params.treeCount / params.areaHectares;
     if (density > 3500) {
-      flags.push(`SUSPICIOUS: Unrealistic tree density (${Math.round(density)} trees/ha). Max realistic is ~2,500/ha.`);
+      flags.push(`Too many trees for this size (~${Math.round(density)}/ha). Over ~2,500/ha is unusual.`);
       riskPoints += 25;
     } else if (density < 50) {
-      flags.push(`SUSPICIOUS: Extremely sparse tree density (${Math.round(density)} trees/ha).`);
+      flags.push(`Very few trees for this size (~${Math.round(density)}/ha).`);
       riskPoints += 20;
     }
   }
 
-  // 5. Title & Location Text Anomaly Detection
   const titleLower = params.title.toLowerCase();
   const locLower = params.locationName.toLowerCase();
   const scamKeywords = ['test', 'fake', 'scam', 'dummy', 'asdf', '123', 'qwerty', 'sample', 'lorem'];
-  
+
   if (scamKeywords.some((kw) => titleLower.includes(kw) || locLower.includes(kw))) {
-    flags.push('SUSPICIOUS: Title or location contains placeholder keywords.');
+    flags.push('Title or place name looks like placeholder text (test/fake/dummy…).');
     riskPoints += 45;
   }
 
@@ -73,11 +74,11 @@ export async function evaluatePlantationScamRisk(params: {
   const isSuspicious = finalRiskScore >= 35;
   const locationVerified = finalRiskScore < 25;
 
-  let recommendation = '🟢 LOW SCAM RISK: GPS coordinates match physical real-world location & ecological bounds.';
+  let recommendation = 'Pin looks consistent with the place name.';
   if (finalRiskScore >= 60) {
-    recommendation = '🔴 HIGH SCAM RISK: Geographic mismatch or fake coordinates detected!';
+    recommendation = 'Do not buy — GPS and place name do not line up, or the pin looks fake.';
   } else if (finalRiskScore >= 35) {
-    recommendation = '🟡 MODERATE SCAM RISK: Location mismatch detected between claimed name & GPS coordinates.';
+    recommendation = 'Double-check before buying — claimed place and GPS pin disagree.';
   }
 
   return {
@@ -88,4 +89,16 @@ export async function evaluatePlantationScamRisk(params: {
     flags,
     recommendation,
   };
+}
+
+/** Business marketplace gates */
+export const RISK_WARN_AT = 35;
+export const RISK_BLOCK_AT = 60;
+
+export type PurchaseRiskGate = 'allow' | 'warn' | 'block';
+
+export function getPurchaseRiskGate(scamRiskScore: number): PurchaseRiskGate {
+  if (scamRiskScore >= RISK_BLOCK_AT) return 'block';
+  if (scamRiskScore >= RISK_WARN_AT) return 'warn';
+  return 'allow';
 }

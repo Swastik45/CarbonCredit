@@ -4,6 +4,15 @@ import React, { useState } from 'react';
 import { Layers, MapPin, Filter } from 'lucide-react';
 import { evaluatePlantationScamRisk, AntiScamResult } from '@/lib/antiScam';
 
+export type NdviObservationSummary = {
+  id: string;
+  meanNdvi: number;
+  cloudCoverPct?: number | null;
+  sceneDate: string;
+  satellite: string;
+  createdAt?: string;
+};
+
 export type PlantationPlot = {
   id: string;
   farmerId?: string;
@@ -13,6 +22,7 @@ export type PlantationPlot = {
   latitude: number;
   longitude: number;
   areaHectares: number;
+  measuredAreaHectares?: number | null;
   treeSpecies: string;
   treeCount: number;
   status: 'PENDING' | 'VERIFIED' | 'REJECTED';
@@ -20,6 +30,8 @@ export type PlantationPlot = {
   creditsIssued: number;
   landParcelId?: string;
   documentUrl?: string;
+  boundaryGeoJson?: string | null;
+  ndviObservations?: NdviObservationSummary[];
   farmer?: {
     id: string;
     name: string;

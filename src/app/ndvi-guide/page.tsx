@@ -37,15 +37,17 @@ export default function NDVIGuidePage() {
         <div className="text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass-panel border border-carbon-500/30 text-carbon-300 text-xs">
             <Globe className="w-4 h-4 text-carbon-400" />
-            <span>Sentinel-2 & Landsat-9 Satellite Verification</span>
+            <span>Nepal MRV · free Planetary Computer Sentinel-2</span>
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
-            How Satellite <span className="gradient-text">NDVI Verification Works</span>
+            How <span className="gradient-text">NDVI Measurement</span> Works Here
           </h1>
 
           <p className="text-sm sm:text-base text-carbon-300 max-w-2xl mx-auto leading-relaxed">
-            Normalized Difference Vegetation Index (NDVI) is an advanced remote sensing metric used to measure live green vegetation density and audit carbon credit claims.
+            NDVI = (NIR − Red) / (NIR + Red). This platform measures mean NDVI over your drawn plot polygon
+            using Microsoft Planetary Computer (free Sentinel-2 L2A — no paid account). Credits are a voluntary
+            estimate — not Verra or Gold Standard. The calculator below is educational only.
           </p>
 
           <button
@@ -68,17 +70,19 @@ export default function NDVIGuidePage() {
 
           <div className="glass-panel p-6 rounded-2xl">
             <Zap className="w-8 h-8 text-carbon-400 mb-3" />
-            <h3 className="font-bold text-white text-base">Automated Issuance</h3>
+            <h3 className="font-bold text-white text-base">Credit Issuance</h3>
             <p className="text-xs text-carbon-300 mt-2">
-              Our Admin Verification engine evaluates Sentinel satellite feeds to compute verified carbon credits (`tCO₂e`) per hectare.
+              Admins approve only after a stored Sentinel-2 observation (mean NDVI, scene date, cloud gate).
+              Formula: measured area × NDVI × species multiplier × 12.5.
             </p>
           </div>
 
           <div className="glass-panel p-6 rounded-2xl">
             <CheckCircle className="w-8 h-8 text-carbon-400 mb-3" />
-            <h3 className="font-bold text-white text-base">Fraud Prevention</h3>
+            <h3 className="font-bold text-white text-base">Nepal plot integrity</h3>
             <p className="text-xs text-carbon-300 mt-2">
-              Prevents double-counting and unverified carbon credit claims through historical satellite timeline verification.
+              GPS + polygon must fall inside Nepal; claimed area must match measured boundary within 25%;
+              Lalpurja parcel IDs cannot be double-claimed.
             </p>
           </div>
         </div>

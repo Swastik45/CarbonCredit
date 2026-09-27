@@ -47,20 +47,20 @@ export default function TransactionLedger() {
   }
 
   return (
-    <div className="glass-panel p-6 rounded-3xl border border-carbon-500/30 space-y-4">
-      <div className="flex items-center justify-between border-b border-carbon-900 pb-4">
+    <div className="p-5 sm:p-6 rounded-xl border border-white/[0.08] bg-[#101412]/80 space-y-4">
+      <div className="flex items-center justify-between border-b border-white/[0.06] pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-carbon-950 border border-carbon-500/30 flex items-center justify-center text-carbon-400">
-            <FileText className="w-5 h-5" />
+          <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/10 flex items-center justify-center text-neutral-300">
+            <FileText className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-white text-base">Carbon Offset Transaction Ledger</h3>
-            <p className="text-xs text-carbon-300">Audited Purchases & Issued Digital Certificates</p>
+            <h3 className="font-medium text-white text-sm">Carbon Offset Transaction Ledger</h3>
+            <p className="text-xs text-neutral-400">Audited Purchases & Issued Digital Certificates</p>
           </div>
         </div>
 
-        <span className="text-xs text-carbon-400 font-mono">
-          <strong className="text-emerald-400 font-bold">{purchases.length}</strong> Settled Transactions
+        <span className="text-xs text-neutral-400 font-mono">
+          <strong className="text-white font-semibold">{purchases.length}</strong> Settled Transactions
         </span>
       </div>
 
@@ -69,15 +69,15 @@ export default function TransactionLedger() {
         {purchases.map((item) => (
           <div
             key={item.id}
-            className="p-4 rounded-2xl bg-darkbg-900/90 border border-carbon-500/20 flex flex-wrap items-center justify-between gap-4 text-xs hover:border-carbon-500/40 transition-all"
+            className="p-4 rounded-xl bg-black/30 border border-white/[0.06] flex flex-wrap items-center justify-between gap-4 text-xs hover:border-white/15 transition-all"
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-950 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/10 flex items-center justify-center text-neutral-300 shrink-0">
                 <ArrowUpRight className="w-4 h-4" />
               </div>
               <div>
-                <h4 className="font-bold text-white text-sm">{item.plantation?.title || 'Carbon Offset Investment'}</h4>
-                <p className="text-[11px] text-carbon-300">
+                <h4 className="font-medium text-white text-xs">{item.plantation?.title || 'Carbon Offset Investment'}</h4>
+                <p className="text-[11px] text-neutral-400">
                   {item.plantation?.locationName} • Receipt #{item.receiptNumber}
                 </p>
               </div>
@@ -85,22 +85,22 @@ export default function TransactionLedger() {
 
             <div className="flex items-center gap-6 font-mono">
               <div>
-                <span className="text-[10px] text-carbon-400 block">CREDITS</span>
-                <span className="text-emerald-400 font-bold text-sm">+{item.creditsCount} tCO₂e</span>
+                <span className="text-[10px] text-neutral-500 block">CREDITS</span>
+                <span className="text-white font-semibold text-xs">+{item.creditsCount} tCO₂e</span>
               </div>
 
               <div>
-                <span className="text-[10px] text-carbon-400 block">TOTAL PRICE</span>
-                <span className="text-white font-bold">${item.totalPrice.toFixed(2)}</span>
+                <span className="text-[10px] text-neutral-500 block">TOTAL PRICE</span>
+                <span className="text-white font-semibold text-xs">${item.totalPrice.toFixed(2)}</span>
               </div>
 
               <a
                 href={`/api/certificates/${item.receiptNumber}`}
                 target="_blank"
                 rel="noreferrer"
-                className="px-3 py-1.5 rounded-lg glass-panel hover:border-carbon-500/50 text-carbon-200 hover:text-white flex items-center gap-1.5 transition-all text-xs"
+                className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] text-neutral-300 hover:text-white flex items-center gap-1.5 transition-all text-xs"
               >
-                <Download className="w-3.5 h-3.5 text-carbon-400" />
+                <Download className="w-3.5 h-3.5 text-neutral-400" />
                 <span>Certificate</span>
               </a>
             </div>
@@ -108,7 +108,7 @@ export default function TransactionLedger() {
         ))}
 
         {purchases.length === 0 && (
-          <div className="py-8 text-center text-carbon-400 text-xs">
+          <div className="py-8 text-center text-neutral-500 text-xs">
             No transactions found in your audit ledger.
           </div>
         )}

@@ -3,6 +3,14 @@ import prisma from '@/lib/dbconnect';
 import { getUserFromRequest } from '@/lib/session';
 import { PlantationStatus, Role } from '@prisma/client';
 import { hasAdminAccess } from '@/lib/adminBypass';
+import { estimateCredits } from '@/lib/geoArea';
+import {
+  getLatestNdviObservation,
+  measureAndStoreNdvi,
+  MIN_NDVI_FOR_ISSUE,
+  MAX_CLOUD_FOR_ISSUE,
+} from '@/lib/ndviMeasure';
+import { clearPlatformCaches } from '@/lib/redis';
 
 export async function POST(request: Request) {
   try {
@@ -13,7 +21,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { plantationId, action, ndviScore, rejectionReason } = body;
+    const { plantationId, action, rejectionReason, forceRemeasure } = body;
 
     if (!plantationId || !action || !['APPROVE', 'REJECT'].includes(action.toUpperCase())) {
       return NextResponse.json({ error: 'Plantation ID and valid action (APPROVE/REJECT) are required.' }, { status: 400 });
@@ -33,9 +41,13 @@ export async function POST(request: Request) {
         where: { id: plantationId },
         data: {
           status: PlantationStatus.REJECTED,
-          rejectionReason: rejectionReason ? String(rejectionReason).trim() : 'Insufficient vegetation health or coordinate invalidity.',
+          rejectionReason: rejectionReason
+            ? String(rejectionReason).trim()
+            : 'Insufficient vegetation health, ownership proof, or coordinate invalidity.',
         },
       });
+
+      await clearPlatformCaches();
 
       return NextResponse.json({
         message: 'Plantation submission rejected.',
@@ -43,20 +55,67 @@ export async function POST(request: Request) {
       });
     }
 
-    // Calculate NDVI score & Carbon Credits
-    // Formula: Area (Hectares) * NDVI Health Score * Species Multiplier * Base Factor (12.5 tCO2e / ha)
-    const calculatedNdvi = ndviScore !== undefined ? parseFloat(ndviScore) : Math.min(0.95, 0.55 + Math.random() * 0.35);
-    const speciesMultiplier = plantation.treeSpecies.toLowerCase().includes('bamboo') ? 1.4 : 1.15;
-    const creditsIssued = Math.round(plantation.areaHectares * calculatedNdvi * speciesMultiplier * 12.5 * 100) / 100;
+    // APPROVE — measured NDVI only (no client-supplied score, no random)
+    if (!plantation.boundaryGeoJson) {
+      return NextResponse.json(
+        { error: 'Cannot approve: plantation has no GPS boundary polygon.' },
+        { status: 422 }
+      );
+    }
 
-    // Transactionally update plantation, credit farmer account, and log transaction
-    const [updatedPlantation, updatedFarmer] = await prisma.$transaction([
+    let latest = await getLatestNdviObservation(plantationId);
+
+    if (forceRemeasure || !latest) {
+      try {
+        await measureAndStoreNdvi(plantationId);
+        latest = await getLatestNdviObservation(plantationId);
+      } catch (err: any) {
+        return NextResponse.json(
+          { error: err?.message || 'Failed to measure NDVI before approval.' },
+          { status: 502 }
+        );
+      }
+    }
+
+    if (!latest) {
+      return NextResponse.json(
+        { error: 'No Sentinel-2 NDVI observation available. Use Re-measure, then approve.' },
+        { status: 422 }
+      );
+    }
+
+    if (latest.meanNdvi < MIN_NDVI_FOR_ISSUE) {
+      return NextResponse.json(
+        {
+          error: `Cannot issue credits: mean NDVI ${latest.meanNdvi} is below ${MIN_NDVI_FOR_ISSUE}. Reject or re-measure when vegetation is healthier.`,
+          observation: latest,
+        },
+        { status: 422 }
+      );
+    }
+
+    if (latest.cloudCoverPct != null && latest.cloudCoverPct > MAX_CLOUD_FOR_ISSUE) {
+      return NextResponse.json(
+        {
+          error: `Cannot issue credits: cloud/no-data ~${latest.cloudCoverPct}% exceeds ${MAX_CLOUD_FOR_ISSUE}%. Re-measure on a clearer window.`,
+          observation: latest,
+        },
+        { status: 422 }
+      );
+    }
+
+    const areaForCredits = plantation.measuredAreaHectares ?? plantation.areaHectares;
+    const calculatedNdvi = latest.meanNdvi;
+    const creditsIssued = estimateCredits(areaForCredits, calculatedNdvi, plantation.treeSpecies);
+
+    const [updatedPlantation] = await prisma.$transaction([
       prisma.plantation.update({
         where: { id: plantationId },
         data: {
           status: PlantationStatus.VERIFIED,
           ndviScore: calculatedNdvi,
-          creditsIssued: creditsIssued,
+          creditsIssued,
+          isOwnershipVerified: true,
           rejectionReason: null,
         },
       }),
@@ -69,25 +128,26 @@ export async function POST(request: Request) {
       prisma.carbonTransaction.create({
         data: {
           userId: plantation.farmerId,
-          plantationId: plantationId,
+          plantationId,
           amount: creditsIssued,
           totalPrice: creditsIssued * 18.5,
           type: 'TRANSFER',
-          certificateUrl: `https://carboncredit.com/certificates/verify-${plantationId}.pdf`,
+          description: `Voluntary credits from Sentinel-2 NDVI ${calculatedNdvi} (scene ${latest.sceneDate.toISOString().slice(0, 10)}) over ${areaForCredits} ha`,
+          certificateUrl: `/api/certificates/${plantationId}`,
         },
       }),
     ]);
 
+    await clearPlatformCaches();
+
     return NextResponse.json({
-      message: `Plantation verified! NDVI Score: ${calculatedNdvi.toFixed(2)}. ${creditsIssued} tCO₂e Carbon Credits issued to Farmer.`,
+      message: 'Plantation verified. Credits issued from measured Sentinel-2 NDVI (voluntary marketplace estimate).',
       plantation: updatedPlantation,
-      farmer: {
-        id: updatedFarmer.id,
-        name: updatedFarmer.name,
-        newCreditBalance: updatedFarmer.carbonCredits,
-      },
+      observation: latest,
+      creditsIssued,
+      formula: `credits = ${areaForCredits} ha × NDVI ${calculatedNdvi} × speciesMultiplier × 12.5`,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Verification workflow failed.' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Verification failed.' }, { status: 500 });
   }
 }

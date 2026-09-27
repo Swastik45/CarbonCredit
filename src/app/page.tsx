@@ -1,25 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowDown, ArrowRight, ArrowUpRight } from 'lucide-react';
 import ForestWorld from '@/components/ForestWorld';
 
 export default function HomePage() {
-  useEffect(() => {
-    const tokens = document.querySelectorAll<HTMLElement>('.forest-token');
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) entry.target.classList.add('token-found');
-        });
-      },
-      { threshold: 0.55 },
-    );
-
-    tokens.forEach((token) => observer.observe(token));
-    return () => observer.disconnect();
-  }, []);
+  const [activeStep, setActiveStep] = useState(1);
 
   useEffect(() => {
     const scene = document.querySelector<HTMLElement>('.forest-only-landing');
@@ -28,10 +15,10 @@ export default function HomePage() {
     let frame = 0;
     let pointerX = 0.5;
     let pointerY = 0.5;
+    let currentX = 0;
+    let currentY = 0;
     let scrollPosition = window.scrollY;
     let targetScroll = scrollPosition;
-    let lastTime = performance.now();
-    let lastFrameTime = 0;
     let maxScroll = Math.max(document.body.scrollHeight - window.innerHeight, 1);
 
     const movePointer = (event: PointerEvent) => {
@@ -41,30 +28,38 @@ export default function HomePage() {
 
     const updateScroll = () => {
       targetScroll = window.scrollY;
+      const progress = targetScroll / maxScroll;
+      if (progress < 0.25) setActiveStep(1);
+      else if (progress < 0.5) setActiveStep(2);
+      else if (progress < 0.75) setActiveStep(3);
+      else setActiveStep(4);
     };
 
     const updateSceneBounds = () => {
       maxScroll = Math.max(document.body.scrollHeight - window.innerHeight, 1);
     };
 
+    let lastFrameTime = 0;
     const animateScene = (time: number) => {
-      if (time - lastFrameTime < 33) {
+      if (time - lastFrameTime < 35) {
         frame = requestAnimationFrame(animateScene);
         return;
       }
-
       lastFrameTime = time;
-      const delta = Math.min((time - lastTime) / 1000, 0.05);
-      lastTime = time;
-      scrollPosition += (targetScroll - scrollPosition) * Math.min(delta * 8, 1);
-      const drift = time * 0.00022;
+
+      scrollPosition += (targetScroll - scrollPosition) * 0.1;
       const scrollDepth = scrollPosition / maxScroll;
-      const x = Math.sin(drift) * 1.8 + (pointerX - 0.5) * 2.8;
-      const y = Math.cos(drift * 0.8) * 1.2 + (pointerY - 0.5) * 1.8 - scrollDepth * 2.8;
-      scene.style.setProperty('--forest-x', `${x}%`);
-      scene.style.setProperty('--forest-y', `${y}%`);
+
+      const targetX = (pointerX - 0.5) * 12;
+      const targetY = (pointerY - 0.5) * 8 - scrollDepth * 10;
+
+      currentX += (targetX - currentX) * 0.05;
+      currentY += (targetY - currentY) * 0.05;
+
+      scene.style.setProperty('--forest-x', `${currentX.toFixed(2)}px`);
+      scene.style.setProperty('--forest-y', `${currentY.toFixed(2)}px`);
       scene.style.setProperty('--forest-depth', `${scrollDepth.toFixed(3)}`);
-      scene.style.setProperty('--forest-effects-scale', (1 + scrollDepth * 0.025).toFixed(3));
+
       frame = requestAnimationFrame(animateScene);
     };
 
@@ -82,80 +77,133 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main className="site-shell forest-only-landing forest-3d-active" aria-label="Carbon Credit forest journey">
+    <main 
+      className="site-shell forest-only-landing relative overflow-x-hidden text-white font-sans selection:bg-neutral-800 selection:text-white" 
+      aria-label="Carbon Ledger Field Guide"
+    >
+      {/* Background 3D World fully un-muted */}
       <ForestWorld />
-      <div className="forest-effects" aria-hidden="true">
-        <span className="light-shaft light-shaft-one" />
-        <span className="light-shaft light-shaft-two" />
-        <span className="mist mist-one" />
-        <span className="mist mist-two" />
-        <span className="depth-shadow depth-shadow-left" />
-        <span className="depth-shadow depth-shadow-right" />
-        <span className="firefly firefly-one" />
-        <span className="firefly firefly-two" />
-        <span className="firefly firefly-three" />
-        <span className="firefly firefly-four" />
-      </div>
 
-      <div className="journey-hud">
-        <header className="landing-nav">
-          <Link href="/" className="landing-brand" aria-label="Carbon Credit home">
-            <span className="brand-dot" />
-            <span>Carbon Credit</span>
+      {/* Header with completely transparent navbar background */}
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-8 md:px-16 py-8 border-b border-white/10 bg-transparent">
+        <Link href="/" className="flex items-center gap-3 text-white group" aria-label="Carbon Ledger home">
+          <span className="w-2 h-2 bg-white rounded-full" />
+          <span className="text-sm font-semibold tracking-wider uppercase">
+            Carbon Ledger
+          </span>
+        </Link>
+
+        <div className="flex items-center gap-8">
+          <span className="hidden md:inline-block font-mono text-xs text-neutral-300 uppercase tracking-widest">
+            [ 0{activeStep} / 04 ]
+          </span>
+          <Link 
+            href="/login" 
+            className="font-mono text-xs tracking-wider text-neutral-200 hover:text-white transition-colors flex items-center gap-1 py-1.5 px-3 border border-white/30 hover:border-white bg-transparent"
+          >
+            <span>Sign In</span>
+            <ArrowUpRight size={14} />
           </Link>
+        </div>
+      </header>
 
-          <nav className="landing-links" aria-label="Main navigation">
-            <Link href="/login" className="nav-login">Sign in <ArrowUpRight size={15} /></Link>
-          </nav>
-        </header>
-        <div className="journey-progress"><span /> <b>01</b> / 04</div>
+      {/* Left progress indicator */}
+      <div className="fixed left-8 md:left-16 top-1/2 -translate-y-1/2 z-40 hidden lg:flex flex-col gap-4 pointer-events-none" aria-hidden="true">
+        {[1, 2, 3, 4].map((step) => (
+          <div key={step} className="flex items-center gap-3">
+            <span className={`font-mono text-xs transition-colors duration-300 ${activeStep === step ? 'text-white font-bold' : 'text-neutral-400'}`}>
+              0{step}
+            </span>
+            <div className={`h-[1px] transition-all duration-300 ${activeStep === step ? 'w-6 bg-white' : 'w-2 bg-neutral-500'}`} />
+          </div>
+        ))}
       </div>
 
-      <div className="forest-route" aria-hidden="true" />
+      {/* Hero */}
+      <section className="relative z-20 min-h-screen flex flex-col justify-center items-start px-8 md:px-24 lg:px-36 max-w-5xl">
+        <p className="font-mono text-xs text-neutral-300 uppercase tracking-widest mb-6 drop-shadow-md">
+          // Interactive Field Guide
+        </p>
 
-      <section className="forest-opening">
-        <p className="landing-kicker"><span /> An interactive field guide</p>
-        <h1>Enter the<br /><em>living ledger.</em></h1>
-        <p>Walk through the forest. Find the signals. Build something that lasts.</p>
-        <span className="opening-prompt"><ArrowDown size={16} /> Scroll to begin</span>
-      </section>
+        <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight text-white leading-none mb-6 drop-shadow-lg">
+          Enter the <br />
+          <span className="text-neutral-300">living ledger.</span>
+        </h1>
 
-      <section className="forest-token token-one" aria-label="Land token">
-        <span className="token-orbit" />
-        <span className="token-number">01</span>
-        <div className="token-copy">
-          <span className="token-label">Found: the ground layer</span>
-          <h2>Your land has a story.</h2>
-          <p>Register plots, ownership, and planting history in one trusted trail.</p>
+        <p className="text-base md:text-lg text-neutral-200 max-w-md font-normal leading-relaxed mb-12 drop-shadow">
+          Walk through the forest. Read the signals. Build a verifiable climate record.
+        </p>
+
+        <div className="flex items-center gap-3 font-mono text-xs text-neutral-300 uppercase tracking-widest drop-shadow">
+          <ArrowDown size={14} className="animate-bounce text-white" />
+          <span>Scroll to begin</span>
         </div>
       </section>
 
-      <section className="forest-token token-two" aria-label="Verification token">
-        <span className="token-orbit" />
-        <span className="token-number">02</span>
-        <div className="token-copy">
-          <span className="token-label">Found: a living signal</span>
-          <h2>Growth leaves evidence.</h2>
-          <p>Satellite health and field records turn change on the ground into proof you can follow.</p>
+      {/* Chapter 01 */}
+      <section className="relative z-20 min-h-screen flex items-center px-8 md:px-24 lg:px-36 max-w-6xl mx-auto py-32">
+        <div className="max-w-xl border-l border-white/30 pl-8 bg-transparent p-6">
+          <span className="font-mono text-xs text-neutral-300 uppercase tracking-widest block mb-3">
+            01 / Ground Layer
+          </span>
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 tracking-tight drop-shadow">
+            Your land holds an immutable story.
+          </h2>
+          <p className="text-neutral-200 text-sm md:text-base leading-relaxed font-normal drop-shadow">
+            Register plots, boundaries, and historical records into a transparent trail designed for audits and permanence.
+          </p>
         </div>
       </section>
 
-      <section className="forest-token token-three" aria-label="Exchange token">
-        <span className="token-orbit" />
-        <span className="token-number">03</span>
-        <div className="token-copy">
-          <span className="token-label">Found: the clear trail</span>
-          <h2>Value can move openly.</h2>
-          <p>Verified credits connect farmers, owners, and institutions without losing the path behind them.</p>
+      {/* Chapter 02 */}
+      <section className="relative z-20 min-h-screen flex items-center justify-end px-8 md:px-24 lg:px-36 max-w-6xl mx-auto py-32 text-right">
+        <div className="max-w-xl border-r border-white/30 pr-8 bg-transparent p-6">
+          <span className="font-mono text-xs text-neutral-300 uppercase tracking-widest block mb-3">
+            02 / Living Signals
+          </span>
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 tracking-tight drop-shadow">
+            Growth leaves concrete proof.
+          </h2>
+          <p className="text-neutral-200 text-sm md:text-base leading-relaxed font-normal drop-shadow">
+            Satellite health metrics sync with ground records to turn ecological change into clear verification data.
+          </p>
         </div>
       </section>
 
-      <section className="forest-destination" aria-label="Recommended starting place">
-        <span className="destination-mark">04</span>
-        <p className="landing-kicker"><span /> Recommended first place</p>
-        <h2>The clearing<br /><em>is yours.</em></h2>
-        <p>Start by bringing your first plot into the exchange.</p>
-        <Link href="/signup" className="lets-go">Let&apos;s go <ArrowRight size={18} /></Link>
+      {/* Chapter 03 */}
+      <section className="relative z-20 min-h-screen flex items-center px-8 md:px-24 lg:px-36 max-w-6xl mx-auto py-32">
+        <div className="max-w-xl border-l border-white/30 pl-8 bg-transparent p-6">
+          <span className="font-mono text-xs text-neutral-300 uppercase tracking-widest block mb-3">
+            03 / Clear Trail
+          </span>
+          <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 tracking-tight drop-shadow">
+            Value moves openly.
+          </h2>
+          <p className="text-neutral-200 text-sm md:text-base leading-relaxed font-normal drop-shadow">
+            Verified credits connect local stewards with institutional buyers without losing the trail behind them.
+          </p>
+        </div>
+      </section>
+
+      {/* Chapter 04 / Destination */}
+      <section className="relative z-20 min-h-screen flex flex-col justify-center items-center text-center px-8 py-32 max-w-2xl mx-auto">
+        <span className="font-mono text-xs text-neutral-300 uppercase tracking-widest mb-4 drop-shadow">
+          04 / Destination
+        </span>
+        <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight drop-shadow-lg">
+          The clearing <br />
+          <span className="text-neutral-300">is yours.</span>
+        </h2>
+        <p className="text-neutral-200 text-sm md:text-base max-w-sm mb-10 leading-relaxed font-normal drop-shadow">
+          Start by onboarding your first parcel into the open exchange.
+        </p>
+        <Link 
+          href="/signup" 
+          className="group inline-flex items-center gap-3 px-6 py-3.5 bg-white hover:bg-neutral-200 text-black font-mono text-xs uppercase tracking-wider transition-colors shadow-lg"
+        >
+          <span>Claim your plot</span>
+          <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+        </Link>
       </section>
     </main>
   );

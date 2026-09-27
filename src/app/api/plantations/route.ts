@@ -4,6 +4,8 @@ import { getUserFromRequest } from '@/lib/session';
 import { PlantationStatus, Role } from '@prisma/client';
 import { clearPlatformCaches } from '@/lib/redis';
 import { evaluatePlantationScamRisk } from '@/lib/antiScam';
+import { validateBoundary, isInsideNepal } from '@/lib/geoArea';
+import { measureAndStoreNdvi } from '@/lib/ndviMeasure';
 
 export async function GET(request: Request) {
   try {
@@ -26,6 +28,18 @@ export async function GET(request: Request) {
       include: {
         farmer: {
           select: { id: true, name: true, email: true, companyName: true, kycVerified: true, citizenshipId: true },
+        },
+        ndviObservations: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            meanNdvi: true,
+            cloudCoverPct: true,
+            sceneDate: true,
+            satellite: true,
+            createdAt: true,
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -57,13 +71,13 @@ export async function POST(request: Request) {
       treeCount,
       landParcelId,
       documentUrl,
+      boundaryGeoJson,
     } = body;
 
     if (!title || !locationName || latitude === undefined || longitude === undefined || !areaHectares || !treeSpecies) {
       return NextResponse.json({ error: 'Missing required plantation details (title, location, coordinates, area, species).' }, { status: 400 });
     }
 
-    // 🛡️ Require Official Land Title Parcel ID to prevent fraudulent claims of public/other people's land
     if (!landParcelId || String(landParcelId).trim().length < 4) {
       return NextResponse.json(
         { error: 'Proof of Ownership Required: Please provide an official Land Parcel ID / Lalpurja Registration Number.' },
@@ -71,9 +85,30 @@ export async function POST(request: Request) {
       );
     }
 
-    const cleanLandParcelId = String(landParcelId).trim();
+    if (!boundaryGeoJson) {
+      return NextResponse.json(
+        { error: 'Plot boundary required: draw the plantation polygon on the map before submitting.' },
+        { status: 422 }
+      );
+    }
 
-    // 🛡️ Double Counting & Duplicate Land Claim Protection
+    const cleanLandParcelId = String(landParcelId).trim();
+    const latNum = parseFloat(latitude);
+    const lngNum = parseFloat(longitude);
+    const claimedArea = parseFloat(areaHectares);
+
+    if (!isInsideNepal(latNum, lngNum)) {
+      return NextResponse.json(
+        { error: 'GPS point must be inside Nepal. This platform is Nepal-first.' },
+        { status: 422 }
+      );
+    }
+
+    const boundary = validateBoundary(boundaryGeoJson, claimedArea);
+    if (!boundary.ok || !boundary.polygon || boundary.measuredAreaHectares == null) {
+      return NextResponse.json({ error: boundary.error || 'Invalid plot boundary.' }, { status: 422 });
+    }
+
     const existingClaim = await prisma.plantation.findFirst({
       where: { landParcelId: cleanLandParcelId },
       include: { farmer: { select: { name: true, email: true } } },
@@ -88,16 +123,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const latNum = parseFloat(latitude);
-    const lngNum = parseFloat(longitude);
-    const areaNum = parseFloat(areaHectares);
-    const parsedTreeCount = treeCount ? parseInt(treeCount, 10) : Math.round(areaNum * 400);
+    const measuredArea = boundary.measuredAreaHectares;
+    const parsedTreeCount = treeCount ? parseInt(treeCount, 10) : Math.round(measuredArea * 400);
 
-    // 🛡️ Anti-Scam & Reverse Geocoding Fraud Risk Check
     const scamAudit = await evaluatePlantationScamRisk({
       latitude: latNum,
       longitude: lngNum,
-      areaHectares: areaNum,
+      areaHectares: measuredArea,
       treeCount: parsedTreeCount,
       title: String(title).trim(),
       locationName: String(locationName).trim(),
@@ -124,27 +156,47 @@ export async function POST(request: Request) {
       data: {
         farmerId: user.id,
         title: String(title).trim(),
-        description: description ? String(description).trim() : 'Reforestation plot registered for carbon sequestration verification.',
+        description: description
+          ? String(description).trim()
+          : 'Reforestation plot registered for Sentinel-2 NDVI verification (Nepal voluntary marketplace).',
         locationName: String(locationName).trim(),
         latitude: latNum,
         longitude: lngNum,
-        areaHectares: areaNum,
+        areaHectares: claimedArea,
+        measuredAreaHectares: measuredArea,
         treeSpecies: String(treeSpecies).trim(),
         treeCount: parsedTreeCount,
         landParcelId: cleanLandParcelId,
         status: PlantationStatus.PENDING,
         documentUrl: documentUrl || null,
+        boundaryGeoJson: JSON.stringify(boundary.polygon),
         isOwnershipVerified: false,
       },
     });
 
-    // Invalidate cached statistics & dashboard values
+    let ndviResult = null;
+    let ndviError: string | null = null;
+    try {
+      ndviResult = await measureAndStoreNdvi(plantation.id);
+    } catch (err: any) {
+      ndviError = err?.message || 'Initial NDVI measurement failed; admin can re-measure.';
+    }
+
     await clearPlatformCaches();
 
+    const refreshed = await prisma.plantation.findUnique({
+      where: { id: plantation.id },
+      include: {
+        ndviObservations: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
+    });
+
     return NextResponse.json({
-      message: `Plantation plot registered successfully! Land Parcel Title #${cleanLandParcelId} submitted for Admin land ownership verification.`,
-      plantation,
+      message: `Plantation plot registered. Boundary ${measuredArea} ha measured. Lalpurja #${cleanLandParcelId} pending admin review.`,
+      plantation: refreshed,
       scamAudit,
+      ndvi: ndviResult,
+      ndviError,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error?.message || 'Failed to register plantation plot.' }, { status: 500 });

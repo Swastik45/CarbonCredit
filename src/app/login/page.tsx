@@ -192,7 +192,7 @@ export default function LoginPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <h2 className="text-2xl font-extrabold text-white mt-1">Sign In to Account</h2>
-          <p className="text-xs text-carbon-300 mt-1">Access your satellite-verified carbon credit portal</p>
+          <p className="text-xs text-carbon-300 mt-1">Nepal MRV portal · GPS plots · Sentinel-2 NDVI</p>
         </div>
 
         {/* Global Notifications */}

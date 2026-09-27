@@ -66,7 +66,8 @@ model Plantation {
   locationName         String
   latitude             Float
   longitude            Float
-  areaHectares         Float
+  areaHectares         Float            // Claimed area (farmer-entered)
+  measuredAreaHectares Float?           // Geodesic area from boundary polygon
   treeSpecies          String
   treeCount            Int              @default(0)
   landParcelId         String?          // Cadastral Land Parcel Title / Lalpurja Registration #
@@ -75,7 +76,7 @@ model Plantation {
   status               PlantationStatus @default(PENDING)
   documentUrl          String?          // Uploaded Official Land Title Certificate Document URL
   boundaryGeoJson      String?          @db.Text // GPS Boundary Polygon coordinates
-  ndviScore            Float            @default(0.0)
+  ndviScore            Float            @default(0.0) // Latest measured mean NDVI
   creditsIssued        Float            @default(0.0)
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
@@ -83,10 +84,32 @@ model Plantation {
   farmer               User             @relation(fields: [farmerId], references: [id], onDelete: Cascade)
   purchases            CarbonPurchase[]
   transactions         CarbonTransaction[]
+  ndviObservations     NdviObservation[]
 
   @@index([farmerId])
   @@index([status])
   @@index([landParcelId])
+  @@index([createdAt])
+}
+
+model NdviObservation {
+  id               String   @id @default(cuid())
+  plantationId     String
+  meanNdvi         Float
+  stDevNdvi        Float?
+  cloudCoverPct    Float?
+  sceneDate        DateTime
+  intervalFrom     DateTime?
+  intervalTo       DateTime?
+  satellite        String   @default("SENTINEL2")
+  geometryHash     String?
+  rawStatsJson     String?  @db.Text
+  createdAt        DateTime @default(now())
+
+  plantation       Plantation @relation(fields: [plantationId], references: [id], onDelete: Cascade)
+
+  @@index([plantationId])
+  @@index([sceneDate])
   @@index([createdAt])
 }
 

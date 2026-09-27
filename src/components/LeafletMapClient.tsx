@@ -22,6 +22,7 @@ export default function LeafletMapClient({ plantations, onSelectPlot }: LeafletM
   // Initialize Leaflet Map dynamically on Client
   useEffect(() => {
     let isSubscribed = true;
+    let map: any = null;
 
     async function initLeaflet() {
       if (typeof window === 'undefined' || !mapContainerRef.current) return;
@@ -36,7 +37,7 @@ export default function LeafletMapClient({ plantations, onSelectPlot }: LeafletM
 
       const L = (await import('leaflet')).default;
 
-      if (!isSubscribed) return;
+      if (!isSubscribed || !mapContainerRef.current) return;
 
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
@@ -46,13 +47,21 @@ export default function LeafletMapClient({ plantations, onSelectPlot }: LeafletM
       const defaultLat = plantations[0]?.latitude || 27.7172;
       const defaultLng = plantations[0]?.longitude || 85.3240;
 
-      const map = L.map(mapContainerRef.current, {
+      map = L.map(mapContainerRef.current, {
         center: [defaultLat, defaultLng],
         zoom: 7,
         zoomControl: true,
       });
 
+      if (!isSubscribed) {
+        map.remove();
+        return;
+      }
+
       mapInstanceRef.current = map;
+
+      const stillAlive = () =>
+        isSubscribed && mapInstanceRef.current === map && map.getPane('markerPane');
 
       const satelliteTiles = L.tileLayer(
         'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -75,21 +84,15 @@ export default function LeafletMapClient({ plantations, onSelectPlot }: LeafletM
 
       markersRef.current = [];
 
-      for (const plot of plantations) {
-        const scamResult = await evaluatePlantationScamRisk({
-          latitude: plot.latitude,
-          longitude: plot.longitude,
-          areaHectares: plot.areaHectares,
-          title: plot.title,
-          locationName: plot.locationName,
-        });
+      // Add markers sync first (no await) so map teardown mid-loop can't break Leaflet panes
+      const plotLayers: { plot: PlantationPlot; marker: any; polygonLayer: any }[] = [];
 
-        let markerColor = '#3b69fc'; // Clamphook Blue Verified
-        if (scamResult.isSuspicious) {
-          markerColor = '#ef4444'; // Red High Scam Risk
-        } else if (plot.status === 'PENDING') {
-          markerColor = '#f59e0b'; // Amber Pending
-        }
+      for (const plot of plantations) {
+        if (!stillAlive()) return;
+
+        let markerColor = '#3b69fc';
+        if (plot.status === 'PENDING') markerColor = '#f59e0b';
+        if (plot.status === 'REJECTED') markerColor = '#ef4444';
 
         const customIcon = L.divIcon({
           className: 'custom-leaflet-marker',
@@ -113,30 +116,131 @@ export default function LeafletMapClient({ plantations, onSelectPlot }: LeafletM
           iconAnchor: [12, 12],
         });
 
-        const marker = L.marker([plot.latitude, plot.longitude], { icon: customIcon }).addTo(map);
+        const marker = L.marker([plot.latitude, plot.longitude], { icon: customIcon });
+        marker.addTo(map);
+        markersRef.current.push(marker);
 
-        const popupContent = `
-          <div style="font-family: Mulish, sans-serif; color: #000000; width: 220px; padding: 4px;">
-            <div style="font-weight: 900; font-size: 14px; margin-bottom: 4px; color: #000000;">${plot.title}</div>
-            <div style="font-size: 11px; color: #000000; font-weight: 800; margin-bottom: 4px;">Claimed: <strong style="color:#000000">${plot.locationName}</strong></div>
-            <div style="font-size: 10px; color: #000000; font-weight: 900; margin-bottom: 8px;">Actual: ${scamResult.actualAddress || 'Resolving...'}</div>
-            <div style="font-size: 10px; font-weight: 900; padding: 6px 10px; border-radius: 6px; color: white; background: ${
-              scamResult.isSuspicious ? '#ef4444' : '#3b69fc'
-            }">
-              ${scamResult.isSuspicious ? '⚠️ LOCATION MISMATCH / SCAM' : '🟢 GEOGRAPHY VERIFIED MATCH'}
-            </div>
-          </div>
-        `;
+        let polygonLayer: any = null;
+        if (plot.boundaryGeoJson) {
+          try {
+            const geo =
+              typeof plot.boundaryGeoJson === 'string'
+                ? JSON.parse(plot.boundaryGeoJson)
+                : plot.boundaryGeoJson;
+            polygonLayer = L.geoJSON(geo, {
+              style: {
+                color: markerColor,
+                weight: 2,
+                fillColor: markerColor,
+                fillOpacity: 0.25,
+              },
+            });
+            polygonLayer.addTo(map);
+            markersRef.current.push(polygonLayer);
+          } catch {
+            // ignore invalid stored GeoJSON
+          }
+        }
 
-        marker.bindPopup(popupContent);
+        marker.bindPopup(
+          `<div style="font-family: Mulish, sans-serif; color: #000000; width: 220px; padding: 4px;">
+            <div style="font-weight: 900; font-size: 14px; margin-bottom: 4px;">${plot.title}</div>
+            <div style="font-size: 11px; font-weight: 800;">Claimed: <strong>${plot.locationName}</strong></div>
+            <div style="font-size: 10px; margin-top: 6px; opacity: 0.7;">Auditing geography…</div>
+          </div>`
+        );
 
         marker.on('click', () => {
           setActivePlot(plot);
-          setSelectedScamAudit(scamResult);
+          if (onSelectPlot) onSelectPlot(plot);
+        });
+        polygonLayer?.on('click', () => {
+          setActivePlot(plot);
           if (onSelectPlot) onSelectPlot(plot);
         });
 
-        markersRef.current.push(marker);
+        plotLayers.push({ plot, marker, polygonLayer });
+      }
+
+      // Enrich with anti-scam colors/popups after markers exist
+      for (const { plot, marker, polygonLayer } of plotLayers) {
+        if (!stillAlive()) return;
+
+        try {
+          const scamResult = await evaluatePlantationScamRisk({
+            latitude: plot.latitude,
+            longitude: plot.longitude,
+            areaHectares: plot.areaHectares,
+            title: plot.title,
+            locationName: plot.locationName,
+          });
+
+          if (!stillAlive()) return;
+
+          let markerColor = '#3b69fc';
+          if (scamResult.isSuspicious) markerColor = '#ef4444';
+          else if (plot.status === 'PENDING') markerColor = '#f59e0b';
+
+          const customIcon = L.divIcon({
+            className: 'custom-leaflet-marker',
+            html: `
+              <div style="
+                background-color: ${markerColor};
+                width: 24px;
+                height: 24px;
+                border-radius: 50%;
+                border: 3px solid #000000;
+                box-shadow: 0 0 12px ${markerColor};
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+              ">
+                <div style="width: 8px; height: 8px; background: #ffffff; border-radius: 50%;"></div>
+              </div>
+            `,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+          });
+
+          marker.setIcon(customIcon);
+          if (polygonLayer?.setStyle) {
+            polygonLayer.setStyle({
+              color: markerColor,
+              fillColor: markerColor,
+              weight: 2,
+              fillOpacity: 0.25,
+            });
+          }
+
+          marker.bindPopup(`
+            <div style="font-family: Mulish, sans-serif; color: #000000; width: 220px; padding: 4px;">
+              <div style="font-weight: 900; font-size: 14px; margin-bottom: 4px;">${plot.title}</div>
+              <div style="font-size: 11px; font-weight: 800; margin-bottom: 4px;">Claimed: <strong>${plot.locationName}</strong></div>
+              <div style="font-size: 10px; font-weight: 900; margin-bottom: 8px;">Plot GPS: ${scamResult.actualAddress || 'Resolving...'}</div>
+              <div style="font-size: 10px; font-weight: 900; padding: 6px 10px; border-radius: 6px; color: white; background: ${
+                scamResult.isSuspicious ? '#ef4444' : '#3b69fc'
+              }">
+                ${scamResult.isSuspicious ? '⚠️ LOCATION MISMATCH / SCAM' : '🟢 GEOGRAPHY VERIFIED MATCH'}
+              </div>
+            </div>
+          `);
+
+          marker.off('click');
+          marker.on('click', () => {
+            setActivePlot(plot);
+            setSelectedScamAudit(scamResult);
+            if (onSelectPlot) onSelectPlot(plot);
+          });
+          polygonLayer?.off('click');
+          polygonLayer?.on('click', () => {
+            setActivePlot(plot);
+            setSelectedScamAudit(scamResult);
+            if (onSelectPlot) onSelectPlot(plot);
+          });
+        } catch {
+          // keep default marker if audit fails
+        }
       }
     }
 
@@ -144,8 +248,13 @@ export default function LeafletMapClient({ plantations, onSelectPlot }: LeafletM
 
     return () => {
       isSubscribed = false;
+      markersRef.current = [];
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+        try {
+          mapInstanceRef.current.remove();
+        } catch {
+          // ignore double-remove
+        }
         mapInstanceRef.current = null;
       }
     };
@@ -177,9 +286,9 @@ export default function LeafletMapClient({ plantations, onSelectPlot }: LeafletM
             <Layers className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-black text-black dark:text-white text-base">Sentinel & Esri Real Satellite Map</h3>
+            <h3 className="font-black text-black dark:text-white text-base">Nepal plot map (Esri imagery)</h3>
             <p className="text-xs text-black dark:text-slate-200 font-extrabold">
-              Reverse Geocoding • Real Location Match Audit Engine
+              GPS boundaries · reverse-geocode audit · Sentinel-2 NDVI measured separately
             </p>
           </div>
         </div>
@@ -223,60 +332,63 @@ export default function LeafletMapClient({ plantations, onSelectPlot }: LeafletM
         {/* Selected Plot Anti-Scam & Satellite Inspector Sidebar */}
         <div className="clamphook-card p-6 flex flex-col justify-between space-y-4">
           {activePlot ? (
-            <div className="space-y-4 text-xs font-black">
-              <div className="flex items-center justify-between border-b border-slate-300 dark:border-gray-800 pb-3">
-                <span className="font-black text-black dark:text-white text-sm">{activePlot.title}</span>
-                <span
-                  className={`px-2.5 py-1 rounded-full font-black text-[10px] ${
-                    selectedScamAudit?.isSuspicious
-                      ? 'bg-red-500/10 text-red-700 dark:text-red-300 border border-red-500/40'
-                      : 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40'
+              <div className="space-y-4 text-xs font-semibold">
+              <div className="border-b border-white/10 pb-3 space-y-2">
+                <span className="font-extrabold text-sm tracking-tight block">{activePlot.title}</span>
+                <div
+                  className={`portal-signal ${
+                    selectedScamAudit?.isSuspicious ? 'portal-signal--block' : 'portal-signal--clear'
                   }`}
+                  style={{ marginBottom: 0 }}
                 >
-                  {selectedScamAudit?.isSuspicious ? '⚠️ LOCATION MISMATCH' : '🟢 GEOGRAPHY VERIFIED'}
-                </span>
+                  <span className="portal-signal-kicker">Geographic audit</span>
+                  <span className="portal-signal-title">
+                    {selectedScamAudit?.isSuspicious ? (
+                      <XCircle className="w-3.5 h-3.5" />
+                    ) : (
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                    )}
+                    {selectedScamAudit?.isSuspicious ? 'Location mismatch' : 'Geography verified'}
+                  </span>
+                  <span className="portal-signal-meta">
+                    {selectedScamAudit?.scamRiskScore ?? 0}% risk · Plot #{activePlot.id.slice(-6)}
+                  </span>
+                </div>
               </div>
 
               {/* Reverse Geocoding Match Card */}
               <div
-                className={`p-3.5 rounded-xl border space-y-2 ${
-                  selectedScamAudit?.isSuspicious
-                    ? 'bg-red-500/10 border-red-500/40 text-red-900 dark:text-red-200'
-                    : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-900 dark:text-emerald-200'
+                className={`portal-signal ${
+                  selectedScamAudit?.isSuspicious ? 'portal-signal--block' : 'portal-signal--clear'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-black uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                    {selectedScamAudit?.isSuspicious ? (
-                      <XCircle className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-                    ) : (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    )}
-                    Geographic Match Audit
-                  </span>
-                  <span className="font-mono font-black text-sm">
-                    {selectedScamAudit?.scamRiskScore}% Risk
-                  </span>
-                </div>
-
-                <div className="space-y-1 text-[11px] pt-1">
+                <span className="portal-signal-kicker">Claim vs GPS</span>
+                <div className="space-y-2 text-[11px] pt-0.5">
                   <div>
-                    <span className="text-black dark:text-slate-400 block text-[10px] font-black">CLAIMED LOCATION:</span>
-                    <strong className="text-black dark:text-white font-black">{activePlot.locationName}</strong>
+                    <span className="opacity-55 block text-[10px] font-bold uppercase tracking-wider mb-0.5">
+                      Farmer claimed
+                    </span>
+                    <strong className="font-bold">{activePlot.locationName}</strong>
                   </div>
                   <div>
-                    <span className="text-black dark:text-slate-400 block text-[10px] font-black">ACTUAL GPS PHYSICAL ADDRESS:</span>
-                    <strong className={selectedScamAudit?.isSuspicious ? 'text-red-700 dark:text-red-300 font-black' : 'text-emerald-700 dark:text-emerald-300 font-black'}>
+                    <span className="opacity-55 block text-[10px] font-bold uppercase tracking-wider mb-0.5">
+                      Saved GPS resolves to
+                    </span>
+                    <strong className="font-bold">
                       {selectedScamAudit?.actualAddress || 'Resolving reverse geocoding...'}
                     </strong>
                   </div>
+                  <p className="portal-signal-note pt-1">
+                    If you are in Lalitpur now but this says Lumbini, this plot was registered with western Nepal
+                    coordinates ({activePlot.longitude.toFixed(2)}°E). Register a new plot with GPS/polygon in Lalitpur.
+                  </p>
                 </div>
 
                 {selectedScamAudit?.flags && selectedScamAudit.flags.length > 0 && (
-                  <div className="pt-2 border-t border-red-500/30 space-y-1">
+                  <div className="pt-2 border-t border-white/10 space-y-1">
                     {selectedScamAudit.flags.map((flag: string, idx: number) => (
-                      <div key={idx} className="text-[10px] text-red-700 dark:text-red-300 font-mono font-black">
-                        • {flag}
+                      <div key={idx} className="portal-signal-note font-mono">
+                        · {flag}
                       </div>
                     ))}
                   </div>
